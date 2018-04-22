@@ -1,6 +1,6 @@
 # Fundamentals of Istio course page 
 
-This site contains the content and labs for the Fundamentals of Istioh course. 
+This site contains the content and labs for the Fundamentals of Istio course. 
 
 
 ## [Course Content](http://bit.ly/fun-istio-slides)
