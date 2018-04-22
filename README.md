@@ -9,9 +9,9 @@ This site contains the content and labs for the Fundamentals of Istio course.
 
 ### Labs
 
-Lab 1: [Docker build](labs/01-install/)   
+Lab 1: [Docker build](labs/01-docker-build/)   
 
-Lab 2: [Deploy Microservices with Compose](labs/02-movielens/) 
+Lab 2: [Deploy Microservices with Compose](labs/02-compose) 
 
 Lab 3: [Create MovieLens mapping](labs/03-movielens-mapping)
 
