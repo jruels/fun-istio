@@ -144,6 +144,6 @@ docker run -it --rm -v "$PWD":/app -w /app demo/maven:3.3-jdk-8 java -cp target/
 
 You should now see a successful "Hello World!" message. 
 
-In this lab you successfully build a couple of Docker images and executed applications using those images. 
+In this lab you successfully built a couple of Docker images and executed applications using those images. 
 
 # Lab Complete
