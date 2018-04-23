@@ -21,22 +21,11 @@ Lab 4: [Install Minikube for Windows](labs/04-minikube-win)
 
 Lab 5: [Deploy Kubernetes Pods](labs/05-pods)
 
+Lab 6: [Deploy Multi-container application](labs/06-multi)
+
 ## Day 2
 
 ### Labs 
-Lab 11: [Prefix, Wildcard & Autocompletion](labs/11-prefix-wildcard)
-
-Lab 12: [Interacting with client libraries](labs/12-python)
-
-Lab 13: [Logstash and MySQL](labs/13-logstash)
-
-Lab 14: [Aggregates and Histograms](labs/14-aggs)
-
-Lab 15: [Getting started with Kibana](labs/15-kibana)
-
-Lab 16: [Filebeat setup & integration](labs/16-filebeat)
-
-Lab 17: [Install X-Pack](labs/17-xpack)
 
 # Class Feedback
 
