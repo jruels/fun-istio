@@ -1,8 +1,8 @@
 # Package Microservices
-In the following lab we will take a microservice application and package it into Docker containers using a `Dockerfile` and `docker-compose`
+In the following lab we will take a microservices application and package it into Docker containers using `Dockerfile`s and `docker-compose`
 
 ## Prepare the Environment
-This section uses `Dockerfiles` to configure Docker images.
+This section uses `Dockerfile`s to configure Docker images.
 
 Create a directory for the microservices
 ```
@@ -16,7 +16,7 @@ mkdir nginx postgres web
 ```
 
 ### NGINX
-Within the new `nginx` subdirectory, create a Dockerfile for the NGINX image:
+Within the new `nginx` subdirectory, create a `Dockerfile` for the Nginx image:
 ```
 FROM nginx:alpine
 COPY nginx.conf /etc/nginx/nginx.conf
@@ -99,7 +99,7 @@ COPY visitors (site_id, site_name, visitor_count) FROM stdin;
 ### Web
 The web image will hold an example Flask app. Add the following files to the web directory to prepare the app:
 
-Create a Python version file to specify we want Python 3.6
+Create a version file to specify we want Python 3.6
 ```
 echo "3.6.0" >> web/.python-version
 ```
@@ -179,7 +179,7 @@ def resetcounter():
     return "Successfully deleted redis and postgres counters"
 ```
 
-Create a  `web/requirements.txt` file with following
+Create a  `web/requirements.txt` file with following to install dependencies
 ```
 flask
 gunicorn
@@ -318,6 +318,6 @@ You should see something like this
 flaskapp_1 | DEBUG in linode [/home/flask/app/web/linode.py:56]: flaskapp_1 | reset visitor count
 ```
 
-In this lab you used Docker Compose to simplify building multiple services and linking then together. 
+In this lab you used Docker Compose to simplify building multiple services and linking them together. 
 
 # Lab Complete
