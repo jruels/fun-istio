@@ -128,7 +128,7 @@ Now we are going to build the project and test the `JAR` file.
 
 Enter the `app` directory. 
 ```
-cd /app
+cd app
 ```
 
 Build the project
