@@ -19,6 +19,8 @@ Lab 4: [Install Minikube for Mac](labs/04-minikube-mac)
 
 Lab 4: [Install Minikube for Windows](labs/04-minikube-win)
 
+Lab 5: [Deploy Kubernetes Pods](labs/05-pods)
+
 ## Day 2
 
 ### Labs 
