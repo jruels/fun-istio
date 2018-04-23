@@ -92,7 +92,7 @@ docker run --rm -v $PWD/app:/app -w /app demo/oracle-java:8 java Main
 
 ## Build Maven app 
 
-Now that we've build an Oracle Java Docker image we can build an image for our specific application. 
+Now that we've built an Oracle Java Docker image we can build an image for our specific application. 
 
 Start by creating a file named `Dockerfile-maven`with the following
 ```
