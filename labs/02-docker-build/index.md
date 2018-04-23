@@ -126,20 +126,20 @@ docker run -it --rm -v "$PWD":/app -w /app demo/maven:3.3-jdk-8 mvn archetype:ge
 
 Now we are going to build the project and test the `JAR` file. 
 
-Enter the `my-app` directory. 
+Enter the `app` directory. 
 ```
-cd /app/my-app
+cd /app
 ```
 
 Build the project
 ```
-docker run -it --rm -v "$PWD"/app:/app -w /app demo/maven:3.3-jdk-8 mvn package
+docker run -it --rm -v "$PWD"/my-app:/app -w /app demo/maven:3.3-jdk-8 mvn package
 ```
 
 If that is successful go ahead and run the app! 
 
 ```
-docker run -it --rm -v "$PWD":/app -w /app demo/maven:3.3-jdk-8 java -cp target/my-app-1.0-SNAPSHOT.jar com.mycompany.app.App
+docker run -it --rm -v "$PWD"/my-app:/app -w /app demo/maven:3.3-jdk-8 java -cp target/my-app-1.0-SNAPSHOT.jar com.mycompany.app.App
 ```
 
 You should now see a successful "Hello World!" message. 
