@@ -93,8 +93,5 @@ Then execute the `docker run` command shown below in a PowerShell to test it.
 
 ![](index/A8537664-FEF4-4B61-9DB5-CD5D1584E099.png)
 
-## Confirm Docker Compose was installed 
-Now that we have Docker for Windows, or Docker for Mac installed we need to confirm that Compose was installed. 
-
 
 ## Lab Complete! 
