@@ -9,13 +9,15 @@ This site contains the content and labs for the Fundamentals of Istio course.
 
 ### Labs
 
-Lab 1: [Docker build](labs/01-docker-build/)   
+Lab 1: [Install Docker locally](labs/01-docker-daemon)
 
-Lab 2: [Deploy Microservices with Compose](labs/02-compose) 
+Lab 2: [Docker build](labs/02-docker-build/)   
 
-Lab 3: [Create MovieLens mapping](labs/03-movielens-mapping)
+Lab 3: [Deploy Microservices with Compose](labs/03-compose) 
 
-Lab 4: [Import MovieLens documents](labs/04-movielens-data)
+Lab 4: [Install Minikube for Mac](labs/04-minikube-mac)
+
+Lab 4: [Install Minikube for Windows](labs/04-minikube-win)
 
 Lab 5: [Update document](labs/05-update-document)
 
