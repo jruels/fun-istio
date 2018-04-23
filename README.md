@@ -19,19 +19,6 @@ Lab 4: [Install Minikube for Mac](labs/04-minikube-mac)
 
 Lab 4: [Install Minikube for Windows](labs/04-minikube-win)
 
-Lab 5: [Update document](labs/05-update-document)
-
-Lab 6: [Version Conflict](labs/06-versions)
-
-Lab 7: [Text analyzers](labs/07-analyzers)
-
-Lab 8: [Joins](labs/08-join)
-
-Lab 9: [Query tips](labs/09-search)
-
-Lab 10: [More Query tips](labs/10-more-search)
-
-
 ## Day 2
 
 ### Labs 
