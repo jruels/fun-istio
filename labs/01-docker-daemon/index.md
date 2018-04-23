@@ -4,8 +4,7 @@ In this lab Docker will be used to run our Jenkins server.
 Docker for Mac and Docker for Windows are designed to enable easily running containers on your local machine.  The following instructions explain step-by-step how to do this. 
 
 ## Install Docker for Mac
-Download Docker for Mac from the following URL. 
-https://download.docker.com/mac/stable/Docker.dmg
+Download Docker for Mac from [here](https://download.docker.com/mac/stable/Docker.dmg)
 
 Double click the DMG file to open it and then drag the Docker for Mac binary over to the Applications folder. 
 
@@ -44,8 +43,7 @@ To generate this message, Docker took the following steps:
 Now that Docker is installed continue onto the section “Install Jenkins” 
 
 ## Install Docker for Windows
-Download Docker for Windows from the following URL: 
-https://download.docker.com/win/stable/Docker%20for%20Windows%20Installer.exe
+Download Docker for Windows from [here]( https://download.docker.com/win/stable/Docker%20for%20Windows%20Installer.exe)
 
 1. Double click the exe file to start the installation
 2. Follow the install wizard and authorize Docker with your system password. 
