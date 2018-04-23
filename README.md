@@ -31,5 +31,7 @@ Lab 6: [Deploy Multi-container application](labs/06-multi)
 
 Please let me know what you enjoyed about the class and if there's anything that can be improved. 
 
+[//]: # (This may be the most platform independent comment)
+
 [Fundamentals of Istio Feedback](http://www.metricsthatmatter.com/student/evaluation.asp?k=16324&i=VC00431505)
 
