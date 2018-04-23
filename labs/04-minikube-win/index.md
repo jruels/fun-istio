@@ -54,7 +54,7 @@ Run through the installation and after it's complete open a terminal and test it
 
 Let's start by making sure Minikube starts with the Hyper-V driver. 
 ```
-minikube start --vm-driver hyperv --hyperv-virtual-switch=minikube 
+minikube start --vm-driver hyperv --hyperv-virtual-switch=minikube --memory=4096
 ```
 
 If everything is installed correctly you should see the following: 

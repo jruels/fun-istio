@@ -42,7 +42,7 @@ sudo mv minikube /usr/local/bin/
 
 Let's start by making sure Minikube starts with the hyperkit driver. 
 ```
-minikube start --vm-driver=hyperkit
+minikube start --vm-driver=hyperkit --memory=4096
 ```
 
 If everything is installed correctly you should see the following: 
