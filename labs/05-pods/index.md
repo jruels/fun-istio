@@ -28,7 +28,7 @@ Pay attention to the containers section
 
 Cleanup the running nginx deployment 
 ```
-kubectl delete all 
+kubectl delete deployment --all
 ```
 
 
@@ -63,7 +63,7 @@ kubectl get pods
 
 Now let's go ahead and clean up the environment 
 ```
-kubectl delete all 
+kubectl delete pods --all 
 ```
 
 ## Multi-container deployment
