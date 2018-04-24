@@ -953,11 +953,6 @@ For more about version routing with autoscaling, check out [Canary Deployments u
 This task demonstrates Istio's traffic shadowing/mirroring capabilities. Traffic mirroring is a powerful concept that allows feature teams to bring
 changes to production with as little risk as possible. Mirroring brings a copy of live traffic to a mirrored service and happens out of band of the critical request path for the primary service.
 
-## Before you begin
-
-* Setup Istio by following the instructions in the
-  [Installation guide]({{home}}/docs/setup/).
-
 * Start two versions of the `httpbin` service that have access logging enabled
 
 httpbin-v1:
