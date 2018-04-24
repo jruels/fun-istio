@@ -5,7 +5,7 @@ In this lab you will be getting familiar with Kubernetes manifests.
 
 Create an Nginx Pod in the `default` namespace. 
 ```
-kubectl run nginx-pod-lab --image=nginx-alpine --port=80
+kubectl run nginx-pod-lab --image=nginx --port=80
 ```
 
 Confirm the Pod was created successfully.
@@ -43,7 +43,7 @@ matadata:
   name: nginx-web
 spec:
   containers:
-  - image:nginx-alpine
+  - image:nginx
     name: nginx-web
     ports:
       - containerPort: 80
