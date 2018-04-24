@@ -15,7 +15,8 @@ kubectl get pods
 
 You should see something like: 
 ```
-NAME READY STATUS RESTARTS AGE nginx-pod-lab-1856640016-mglns 1/1 Running 0 40s
+NAME READY STATUS RESTARTS AGE 
+nginx-pod-lab-1856640016-mglns 1/1 Running 0 40s
 ```
 
 To find out more about the Pod and what's running in it run: 

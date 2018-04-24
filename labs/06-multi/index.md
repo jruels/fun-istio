@@ -139,18 +139,15 @@ kubectl get services
 You should see something like this 
 ```
 NAME           TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)        AGE
-frontend       NodePort    10.107.73.47   <none>        80:31495/TCP   34s
+frontend       NodePort    10.107.73.47   103.21.23.45  80:31495/TCP   34s
 kubernetes     ClusterIP   10.96.0.1      <none>        443/TCP        44m
 redis-master   ClusterIP   10.107.62.78   <none>        6379/TCP       11m
 redis-slave    ClusterIP   10.98.54.128   <none>        6379/TCP       6m
 ```
 
 ### Viewing the Frontend Service 
-To load the front end in a browser visit your Master servers IP and use the port from previous command. 
+To load the front end in a browser visit the "EXTERNAL-IP" from above
 
-In the example above we can see that `frontend` Service is running on `NodePort` 31495 so I would visit the following in a web browser 
-
-http://<masterIP>:31495
 
 ## Scale Web Frontend 
 Scaling up or down is easy because your servers are defined as a Service that uses a Deployment controller.
