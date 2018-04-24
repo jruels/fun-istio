@@ -5,24 +5,6 @@
 ## Summary
 In this lab, you will learn how to install and configure Istio, an open source framework for connecting, securing, and managing microservices, on Google Kubernetes Engine, Google's hosted Kubernetes product. You will also deploy an Istio-enabled multi-service application.
 
-# Table of Contents
-1. [Introduction](#introduction)
-2. [Setup and Requirements](#setup-and-requirements)
-3. [Prepare your Kubernetes/GKE cluster](#prepare-your-kubernetes-cluster)
-4. [Installing Istio](#installing-istio)
-5. [Verifying the installation](#verifying-the-installation)
-6. [Deploying an application](#deploying-an-application)
-7. [Use the application](#use-the-application)
-8. [Dynamically change request routing](#dynamically-change-request-routing)
-9. [View metrics and tracing](#viewing-metrics-and-tracing)
-10. [Monitoring for Istio](#monitoring-for-istio)
-11. [Generating a Service Graph](#generate-graph)
-12. [Fault Injection](#fault-injection)
-13. [Security](#security)
-14. [Uninstall Istio](#uninstall-istio)
-15. [Cleanup resources](#cleanup-resources)
-16. [What's next?](#what-next?)
-
 
 ## Introduction <a name="introduction"/>
 
