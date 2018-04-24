@@ -43,7 +43,7 @@ matadata:
   name: nginx-web
 spec:
   containers:
-  - image:nginx
+  - image: nginx
     name: nginx-web
     ports:
       - containerPort: 80
