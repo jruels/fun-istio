@@ -3,7 +3,12 @@
 This site contains the content and labs for the Fundamentals of Istio course. 
 
 To log into the following lab VMs the username is `play` and the SSH key will be provided during class
-Example: 
+
+Set permissions on SSH key 
+```
+chmod 600
+```
+Then SSH in with command below: 
 ```
 ssh -i /path/to/key play@<VM IP>
 ```
@@ -56,9 +61,9 @@ Lab 6: [Deploy Multi-container application](labs/06-multi)
 
 Lab 1: [Istio hands-on](labs/07-istio1)
 
-[//]: ## Class Feedback
+## Class Feedback
 
-[//]: # Please let me know what you enjoyed about the class and if there's anything that can be improved. 
+Please let me know what you enjoyed about the class and if there's anything that can be improved. 
 
-[//]: #[Fundamentals of Istio Feedback](http://www.metricsthatmatter.com/student/evaluation.asp?k=16324&i=VC00431505)
+[Fundamentals of Istio Feedback](http://www.metricsthatmatter.com/student/evaluation.asp?k=16324&i=VC00431505)
 
