@@ -29,6 +29,8 @@ Lab 6: [Deploy Multi-container application](labs/06-multi)
 
 ### Labs 
 
+Lab 6: [Istio hands-on](labs/07-istio1)
+
 [//]: ## Class Feedback
 
 [//]: # Please let me know what you enjoyed about the class and if there's anything that can be improved. 
