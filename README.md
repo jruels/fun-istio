@@ -4,8 +4,8 @@ This site contains the content and labs for the Fundamentals of Istio course.
 
 
 ## Lab VM IPs
+
 |LAB   |IP                   |
-       |                     |
 |------|:-----:|
 |1      |35.203.184.138      |
 |2      |35.203.181.180       |
