@@ -37,7 +37,7 @@ Review the following YAML and then create a file called `nginx-lab.yml` with the
 ```
 apiVersion: v1
 kind: Pod
-matadata:
+metadata:
   labels:
     name: nginx-web
   name: nginx-web
