@@ -119,17 +119,19 @@ Now build the Docker image.
 docker build -f Dockerfile-maven -t demo/maven:3.3-jdk-8 .
 ```
 
-Now we are going to run a test application. We need to create a Maven project to start with, run the following command and just hit enter when prompted.
+Now we are going to run a test application. We need to create a Maven project to start with, 
+
+Enter the `app` directory
+```
+cd app
+```
+
+Run the following command and just hit enter when prompted.
 ```
 docker run -it --rm -v "$PWD":/app -w /app demo/maven:3.3-jdk-8 mvn archetype:generate -DgroupId=com.mycompany.app -DartifactId=my-app -DarchetypeArtifactId=maven-archetype-quickstart -Dinte
 ```
 
 Now we are going to build the project and test the `JAR` file. 
-
-Enter the `app` directory. 
-```
-cd app
-```
 
 Build the project
 ```
