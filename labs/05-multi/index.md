@@ -146,7 +146,7 @@ redis-slave    ClusterIP   10.98.54.128   <none>        6379/TCP       6m
 ```
 
 ### Viewing the Frontend Service 
-To load the front end in a browser visit the "EXTERNAL-IP" from above
+To load the front end in a browser visit localhost on port `8081`
 
 
 ## Scale Web Frontend 
