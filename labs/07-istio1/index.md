@@ -19,7 +19,7 @@ In this lab, you will learn how to install and configure Istio, an open source f
     - [Testing Istio mutual TLS authentication](#mutual)
     - [Testing Istio RBAC](#rbac)
     - [Testing Istio JWT Policy](#jwt)
-10. Monitoring and Observability
+10. [Monitoring and Observability](#monitoring)
    - [View metrics and tracing](#viewing-metrics-and-tracing)
    - [Monitoring for Istio](#monitoring-for-istio)
    - [Generating a Service Graph](#generate-graph)
@@ -849,7 +849,9 @@ OUTPUT:
 * Connection #0 to host 35.227.168.43 left intact
 Origin authentication failed.
 ```
-This is expected, we did not pass a JWT token. It is left to the reader on how to obtain a JWT and pass it in the header.
+This is expected, we did not pass a JWT token.
+
+## Monitoring <a name="monitoring"/>
 
 ## View metrics and tracing <a name="viewing-metrics-and-tracing"/>
 
