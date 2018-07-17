@@ -29,9 +29,7 @@ In this lab, you will learn how to install and configure Istio, an open source f
 
 [Istio](http://istio.io) is an open source framework for connecting, securing, and managing microservices, including services running Kubernetes. It lets you create a network of deployed services with load balancing, service-to-service authentication, monitoring, and more, without requiring any changes in service code.
 
-You add Istio support to services by deploying a special Envoy sidecar proxy to each of your application&#39;s pods in your environment that intercepts all network communication between microservices, configured and managed using Istio'&#39;'s control plane functionality.
-
-![setupcluster](media/setup-cluster-1.png)
+You add Istio support to services by deploying a special Envoy sidecar proxy to each of your application&#39;s pods in your environment that intercepts all network communication between microservices, configured and managed using Istio's control plane functionality.
 
 ## Installing Istio <a name="installing-istio"/>
 
