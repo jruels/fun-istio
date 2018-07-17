@@ -195,7 +195,7 @@ Now that it&#39;s deployed, let&#39;s see the BookInfo application in action.
 If running on Google Container Engine run the following to determine ingress IP and port:
 
 ```
-kubectl get ingress -o wide
+kubectl get svc -o wide
 ```
 OUTPUT:
 ```
