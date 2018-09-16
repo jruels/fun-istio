@@ -98,7 +98,7 @@ spec:
     args: ["-c", "echo Hello from the debian container > /pod-data/index.html"]
 ```
 
-This Pod containers two containers, one is a web server running `nginx` and the other is a fetcher process to populate an HTML file for `nginx` to display. 
+This Pod contains two containers, one is a web server running `nginx` and the other is a fetcher process to populate an HTML file for `nginx` to display. 
 
 Go ahead na deploy it. 
 ```
