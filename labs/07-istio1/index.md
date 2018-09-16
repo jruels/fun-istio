@@ -1,37 +1,41 @@
-# Hands-on workshop on Istio (with Kubernetes)
+# Istio Service Management
+Estimated duration: 2-4 hours
 
-![Istio](media/istio.png)
+<img src="media/istio.png" align="middle" width="150px"/>
 
-## Summary
-In this lab, you will learn how to install and configure Istio, an open source framework for connecting, securing, and managing microservices, on Google Kubernetes Engine, Google's hosted Kubernetes product. You will also deploy an Istio-enabled multi-service application.
+## Summary 
+In this lab, you will learn how to install and configure Istio, an open source framework for connecting, securing, and managing microservices, on Kubernetes. You will also deploy an Istio-enabled multi-service application. Once you complete this lab, you can try managing APIs with Istio and Apigee Edge.
 
+# Table of Contents
+1. [Introduction](#introduction)
+2. [Installing Istio](#installing-istio)
+3. [Verifying the installation](#verifying-the-installation)
+4. [Deploying an application](#deploying-an-application)
+5. [Use the application](#use-the-application)
+6. [Dynamically change request routing](#dynamically-change-request-routing)
+7. [Fault Injection](#fault-injection)
+8. [Circuit Breaker](#circuit)
+9. [Security](#security)
+    - [Testing Istio mutual TLS authentication](#mutual)
+    - [Testing Istio RBAC](#rbac)
+    - [Testing Istio JWT Policy](#jwt)
+10. [Monitoring and Observability](#monitoring)
+   - [View metrics and tracing](#viewing-metrics-and-tracing)
+   - [Monitoring for Istio](#monitoring-for-istio)
+   - [Generating a Service Graph](#generate-graph)
+11. [Uninstall Istio](#uninstall-istio)
 
 ## Introduction <a name="introduction"/>
 
-[Istio](http://istio.io) is an open source framework for connecting, securing, and managing microservices, including services running on Google Kubernetes Engine (GKE). It lets you create a network of deployed services with load balancing, service-to-service authentication, monitoring, and more, without requiring any changes in service code.
+[Istio](http://istio.io) is an open source framework for connecting, securing, and managing microservices, including services running Kubernetes. It lets you create a network of deployed services with load balancing, service-to-service authentication, monitoring, and more, without requiring any changes in service code.
 
-You add Istio support to services by deploying a special Envoy sidecar proxy to each of your application&#39;s pods in your environment that intercepts all network communication between microservices, configured and managed using Istio'&#39;'s control plane functionality.
-
-This codelab shows you how to install and configure Istio on Kubernetes Engine, deploy an Istio-enabled multi-service application, and dynamically change request routing.
-
-
+You add Istio support to services by deploying a special Envoy sidecar proxy to each of your application&#39;s pods in your environment that intercepts all network communication between microservices, configured and managed using Istio's control plane functionality.
 
 ## Installing Istio <a name="installing-istio"/>
 
-Before we can install Istio we have to setup some permissions. 
-
-Grant cluster admin permissions to the current user. You need these permissions to create the necessary RBAC rules for Istio.
-
-```
-    kubectl create clusterrolebinding cluster-admin-binding \
-    --clusterrole=cluster-admin \
-    --user=admin
-```
-
-
 Now, let&#39;s install Istio. Istio is installed in its own Kubernetes istio-system namespace, and can manage microservices from all other namespaces. The installation includes Istio core components, tools, and samples.
 
-The [Istio release page](https://github.com/istio/istio/releases) offers download artifacts for several OSs. In our case, with CloudShell we&#39;ll be using this command to download and extract the latest release automatically:
+The [Istio release page](https://github.com/istio/istio/releases) offers download artifacts for several OSs. In our case we&#39;ll be using this command to download and extract the latest release automatically:
 
 ```curl -L https://git.io/getLatestIstio | sh -```
 
@@ -52,7 +56,7 @@ Add the istioctl client to your PATH:
 
 Let&#39;s now install Istio&#39;s core components. We will install the Istio Auth components which enable [**mutual TLS authentication**](https://istio.io/docs/concepts/security/mutual-tls.html) between sidecars:
 
-```kubectl apply -f install/kubernetes/istio-auth.yaml```
+```kubectl apply -f install/kubernetes/istio-demo-auth.yaml```
 
 This creates the istio-system namespace along with the required RBAC permissions, and deploys Istio-Pilot, Istio-Mixer, Istio-Ingress, Istio-Egress, and Istio-CA (Certificate Authority).
 
@@ -68,12 +72,22 @@ OUTPUT:
 
 ```
 NAME            CLUSTER-IP      EXTERNAL-IP       PORT(S)                       AGE
-istio-ingress   10.83.245.171   35.184.245.62     80:32730/TCP,443:30574/TCP    3m
-istio-pilot     10.83.251.173   <none>            8080/TCP,8081/TCP             3m
-istio-mixer     10.83.244.253   <none>            9091/TCP,9094/TCP,42422/TCP   3m
+grafana                    ClusterIP      10.35.242.92    <none>           3000/TCP                                                              8d
+istio-citadel              ClusterIP      10.35.253.85    <none>           8060/TCP,9093/TCP                                                     8d
+istio-egressgateway        ClusterIP      10.35.255.153   <none>           80/TCP,443/TCP                                                        8d
+istio-ingressgateway       LoadBalancer   10.35.240.252   localhost        80:31380/TCP,443:31390/TCP,31400:31400/TCP                            8d
+istio-pilot                ClusterIP      10.35.244.241   <none>           15003/TCP,15005/TCP,15007/TCP,15010/TCP,15011/TCP,8080/TCP,9093/TCP   8d
+istio-policy               ClusterIP      10.35.245.176   <none>           9091/TCP,15004/TCP,9093/TCP                                           8d
+istio-sidecar-injector     ClusterIP      10.35.245.49    <none>           443/TCP                                                               8d
+istio-statsd-prom-bridge   ClusterIP      10.35.254.183   <none>           9102/TCP,9125/UDP                                                     8d
+istio-telemetry            ClusterIP      10.35.247.113   <none>           9091/TCP,15004/TCP,9093/TCP,42422/TCP                                 8d
+prometheus                 ClusterIP      10.35.246.22    <none>           9090/TCP                                                              8d
+servicegraph               ClusterIP      10.35.253.226   <none>           8088/TCP                                                              8d
+tracing                    LoadBalancer   10.35.254.155   localhost        80:30040/TCP                                                          8d
+zipkin                     ClusterIP      10.35.243.89    <none>           9411/TCP                                                              8d
 ```
 
-Then make sure that the corresponding Kubernetes pods are deployed and all containers are up and running: istio-pilot-\*, istio-mixer-\*, istio-ingress-\*, istio-ca-\*.
+Then make sure that the corresponding Kubernetes pods are deployed and all containers are up and running.
 
 Run the command:
 ```
@@ -81,11 +95,21 @@ kubectl get pods -n istio-system
 ```
 OUTPUT:
 ```
-NAME                                READY     STATUS    RESTARTS   AGE
-istio-ca-3657790228-j21b9           1/1       Running   0          3m
-istio-ingress-1842462111-j3vcs      1/1       Running   0          3m
-istio-pilot-2275554717-93c43        1/1       Running   0          3m
-istio-mixer-2104784889-20rm8        2/2       Running   0          3m
+NAME                                       READY     STATUS      RESTARTS   AGE
+grafana-6f6dff9986-qhdwb                   1/1       Running     0          1d
+istio-citadel-7bdc7775c7-b96t8             1/1       Running     0          1d
+istio-cleanup-old-ca-6fj2q                 0/1       Completed   0          1d
+istio-egressgateway-78dd788b6d-xsmkw       1/1       Running     1          1d
+istio-ingressgateway-7dd84b68d6-v2fkj      1/1       Running     1          1d
+istio-mixer-post-install-8tskw             0/1       Completed   0          1d
+istio-pilot-d5bbc5c59-srqt7                2/2       Running     0          1d
+istio-policy-64595c6fff-9xztj              2/2       Running     0          1d
+istio-sidecar-injector-645c89bc64-hcgq9    1/1       Running     0          1d
+istio-statsd-prom-bridge-949999c4c-lflmx   1/1       Running     0          1d
+istio-telemetry-cfb674b6c-zb2xk            2/2       Running     0          1d
+istio-tracing-754cdfd695-qq6jc             1/1       Running     0          1d
+prometheus-86cb6dd77c-fhglv                1/1       Running     0          1d
+servicegraph-5849b7d696-7dk7q              1/1       Running     0          1d
 ```
 
 When all the pods are running, you can proceed.
@@ -131,11 +155,11 @@ kubectl get services
 OUTPUT:
 ```
 NAME                       CLUSTER-IP   EXTERNAL-IP   PORT(S)              AGE
-details                    10.0.0.31    <none>        9080/TCP             6m
-kubernetes                 10.0.0.1     <none>        443/TCP              21m
-productpage                10.0.0.120   <none>        9080/TCP             6m
-ratings                    10.0.0.15    <none>        9080/TCP             6m
-reviews                    10.0.0.170   <none>        9080/TCP             6m
+details       ClusterIP   10.35.240.243   <none>        9080/TCP   14s
+kubernetes    ClusterIP   10.35.240.1     <none>        443/TCP    14d
+productpage   ClusterIP   10.35.255.218   <none>        9080/TCP   14s
+ratings       ClusterIP   10.35.244.227   <none>        9080/TCP   14s
+reviews       ClusterIP   10.35.252.163   <none>        9080/TCP   14s
 ```
 
 Run the command:
@@ -146,26 +170,32 @@ kubectl get pods
 OUTPUT:
 ```
 NAME                                        READY     STATUS    RESTARTS   AGE
-details-v1-1520924117-48z17                 2/2       Running   0          6m
-productpage-v1-560495357-jk1lz              2/2       Running   0          6m
-ratings-v1-734492171-rnr5l                  2/2       Running   0          6m
-reviews-v1-874083890-f0qf0                  2/2       Running   0          6m
-reviews-v2-1343845940-b34q5                 2/2       Running   0          6m
-reviews-v3-1813607990-8ch52                 2/2       Running   0          6m
+details-v1-568f787b57-ml486       2/2       Running   0          36s
+productpage-v1-74cc57988f-28nxg   2/2       Running   0          36s
+ratings-v1-5bb4b7c645-8xbp8       2/2       Running   0          36s
+reviews-v1-5b95b546f7-cdlww       2/2       Running   0          36s
+reviews-v2-5799c54cb5-ffjv4       2/2       Running   0          36s
+reviews-v3-5df5bd8dfc-9ldnx       2/2       Running   0          36s
 ```
 
 With Envoy sidecars injected along side each service, the architecture will look like this:
 
 ![bookinfoistio](media/bookinfo-istio.png)
 
+Finally, expose the service to be consumeable on the ingress
+
+```
+istioctl create -f samples/bookinfo/routing/bookinfo-gateway.yaml
+```
+
 ## Use the application <a name="use-the-application"/>
 
 Now that it&#39;s deployed, let&#39;s see the BookInfo application in action.
 
-First you need to get the ingress IP and port, as follows:
+If running on Google Container Engine run the following to determine ingress IP and port:
 
 ```
-kubectl get ingress -o wide
+kubectl get svc -o wide -n istio-system
 ```
 OUTPUT:
 ```
@@ -179,7 +209,12 @@ Based on this information (Address), set the GATEWAY\_URL environment variable:
 
 NOTE : don't forget to append `:80` in the GATEWAY_URL
 
-Once you have the address and port, check that the BookInfo app is running with curl:
+If running on `localhost` set the `GATEWAY_URL` with the following:
+
+```export GATEWAY_URL=localhost:80```
+
+
+Check that the BookInfo app is running with curl:
 
 Run the command:
 ```
@@ -200,26 +235,40 @@ The BookInfo sample deploys three versions of the reviews microservice. When you
 
 We use the istioctl command line tool to control routing, adding a route rule that says all traffic should go to the v1 service. First, confirm there are no route rules installed :
 
-```istioctl get routerules -o yaml```
+```istioctl get destinationrules -n default```
 
-No Resouces will be found. Now, create the rule (check out the source yaml file it you&#39;d like to understand how rules are specified) :
+No Resouces will be found. Now, create the rule (check out the source yaml file if you&#39;d like to understand how rules are specified) :
 
 Run the command:
 ```
-istioctl create -f samples/bookinfo/kube/route-rule-all-v1.yaml -n default
+kubectl apply -f samples/bookinfo/routing/route-rule-all-v1-mtls.yaml -n default
 ```
 OUTPUT:
 ```
-Created config route-rule/default/productpage-default at revision 136126
-Created config route-rule/default/reviews-default at revision 136127
-Created config route-rule/default/ratings-default at revision 136128
-Created config route-rule/default/details-default at revision 136130
+virtualservice "productpage" created
+virtualservice "reviews" created
+virtualservice "ratings" created
+virtualservice "details" created
+destinationrule "productpage" created
+destinationrule "reviews" created
+destinationrule "ratings" created
+destinationrule "details" created
 ```
 
 Look at the rule you&#39;ve just created:
 
 ```
-istioctl get routerules -o yaml
+istioctl get destinationrules
+```
+OUTPUT:
+```
+NAME              KIND                                           NAMESPACE
+details           DestinationRule.networking.istio.io.v1alpha3   default
+productpage       DestinationRule.networking.istio.io.v1alpha3   default
+ratings           DestinationRule.networking.istio.io.v1alpha3   default
+reviews           DestinationRule.networking.istio.io.v1alpha3   default
+istio-policy      DestinationRule.networking.istio.io.v1alpha3   istio-system
+istio-telemetry   DestinationRule.networking.istio.io.v1alpha3   istio-system
 ```
 
 Go back to the Bookinfo application (http://$GATEWAY\_URL/productpage) in your browser. You should see the BookInfo application productpage displayed. Notice that the productpage is displayed with no rating stars since reviews:v1 does not access the ratings service.
@@ -227,37 +276,41 @@ Go back to the Bookinfo application (http://$GATEWAY\_URL/productpage) in your b
 To test reviews:v2, but only for a certain user, let&#39;s create this rule:
 
 ```
-istioctl create -f samples/bookinfo/kube/route-rule-reviews-test-v2.yaml -n default
+kubectl apply -f samples/bookinfo/routing/route-rule-reviews-test-v2.yaml -n default
 ```
 
-Check out the route-rule-reviews-test-v2.yaml file to see how this rule is specified :
+Check out the route-rule-reviews-test-v2.yaml file to see how this virtual service is specified :
 
 ```
 $ cat samples/bookinfo/kube/route-rule-reviews-test-v2.yaml
 ```
 OUTPUT:
 ```
-apiVersion: config.istio.io/v1alpha2
-kind: RouteRule
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
 metadata:
-  name: reviews-test-v2
+  name: reviews
 spec:
-  destination:
-    name: reviews
-  precedence: 2
-  match:
-    request:
-      headers:
+  hosts:
+    - reviews
+  http:
+  - match:
+    - headers:
         cookie:
           regex: "^(.*?;)?(user=jason)(;.*)?$"
-  route:
-  - labels:
-      version: v2
+    route:
+    - destination:
+        host: reviews
+        subset: v2
+  - route:
+    - destination:
+        host: reviews
+        subset: v1
 ```
 
-Look at the rule you&#39;ve just created :
+Look at the virtual service you&#39;ve just created :
 
-```istioctl get routerule reviews-test-v2 -o yaml```
+```istioctl get virtualservices reviews -o yaml```
 
 We now have a way to route some requests to use the reviews:v2 service. Can you guess how? (Hint: no passwords are needed) See how the page behaviour changes if you are logged in as no-one and &#39;jason&#39;.
 
@@ -268,140 +321,12 @@ Once the v2 version has been tested to our satisfaction, we could use Istio to s
 For now, let&#39;s clean up the routing rules:
 
 ```
-istioctl delete -f samples/bookinfo/kube/route-rule-all-v1.yaml -n default
-istioctl delete -f samples/bookinfo/kube/route-rule-reviews-test-v2.yaml -n default
+istioctl delete -f samples/bookinfo/routing/route-rule-all-v1-mtls.yaml 
 ```
-
-## View metrics and tracing <a name="viewing-metrics-and-tracing"/>
-
-Istio-enabled applications can be configured to collect trace spans using, for instance, the popular Zipkin distributed tracing system. Distributed tracing lets you see the flow of requests a user makes through your system, and Istio&#39;s model allows this regardless of what language/framework/platform you use to build your application.
-
-First, install the Zipkin addon :
-
-```kubectl apply -f install/kubernetes/addons/zipkin.yaml```
-
-Istio is now configured to send request information.
-
-Now we need to update the service type from `ClusterIP` to `LoadBalancer` so we can access it from our local machines.
-
-Run the following command to open the service configuration in an editor 
-
-```kubectl edit svc -n istio-system zipkin```
-
-Once it's open, scroll down and replace type `ClusterIP` with `LoadBalancer`, and save file. 
-
-To confirm updates were successfully applied run:
-
-```
-kubectl get svc -n istio-system zipkin
-```
-
-```
-NAME      TYPE           CLUSTER-IP     EXTERNAL-IP      PORT(S)          AGE
-zipkin    LoadBalancer   10.23.253.83   35.203.182.243   9411:31671/TCP   33m
-```
-
-Notice the `External IP` assigned to the service. 
-
-Open your browser to http://<EXTERNAL-IP>:9411 replacing with the actual IP from your service.
-
-Load the Bookinfo application again (http://$GATEWAY_URL/productpage).
-
-Select a trace from the list, and you will now see something similar to the following:
-
-![Istio](media/metrics-1.png)
-
-You can see how long each microservice call took, including the Istio checks.
-
-You can read the [documentation page](https://istio.io/docs/tasks/telemetry/distributed-tracing.html) for further details on Istio&#39;s distributed request tracing.
-
-## Monitoring for Istio <a name="monitoring-for-istio"/>
-
-This task shows you how to setup and use the Istio Dashboard to monitor mesh traffic. As part of this task, you will install the Grafana Istio addon and use the web-based interface for viewing service mesh traffic data.
-
-First, install the Prometheus addon :
-
-```kubectl apply -f install/kubernetes/addons/prometheus.yaml```
-
-Istio is now configured to send monitoring information to Prometheus.
-
-Next, we install the Grafana addon:
-
-```kubectl apply -f install/kubernetes/addons/grafana.yaml```
-
-Grafana will be used to visualize the data prometheus.
-
-Now we need to update the service type from `ClusterIP` to `LoadBalancer` so we can access it from our local machines.
-
-Run the following command to open the service configuration in an editor 
-
-```kubectl edit svc -n istio-system grafana```
-
-Once it's open, scroll down and replace type `ClusterIP` with `LoadBalancer`, and save file.
-
-To confirm updates were successfully applied run:
-
-```
-kubectl get svc -n istio-system grafana
-```
-Should see something like:
-
-```
-NAME      TYPE           CLUSTER-IP    EXTERNAL-IP      PORT(S)          AGE
-grafana   LoadBalancer   10.23.244.8   35.199.150.241   3000:32756/TCP   4m
-```
-
-Notice the `External IP` assigned to the service. 
-
-Open your browser to http://<EXTERNAL-IP>:3000 replacing with the actual IP from your service.
-
-
-
-Load the Bookinfo application again (http://$GATEWAY_URL/productpage).
-
-In the top left click the dropdown and choose "Istio Dashboard", and you will now see something similar to the following:
-
- ![monitoring](media/monitoring-1.png)
-
-## Generating a Service Graph <a name="generate-graph"/>
-
-This task shows you how to generate a graph of services within an Istio mesh. As part of this task, you will install the ServiceGraph addon and use the web-based interface for viewing service graph of the service mesh.
-
-First, install the Service Graph addon :
-
-```kubectl apply -f install/kubernetes/addons/servicegraph.yaml```
-
-Now we need to update the service type from `ClusterIP` to `LoadBalancer` so we can access it from our local machines.
-
-Run the following command to open the service configuration in an editor 
-
-```kubectl edit svc -n istio-system servicegraph``
-
-Once it's open, scroll down and replace type `ClusterIP` with `LoadBalancer`, and save file.
-
-To confirm updates were successfully applied run:
-
-```
-kubectl get svc -n istio-system servicegraph
-```
-
-Should see something like:
-
-```
-NAME           TYPE           CLUSTER-IP      EXTERNAL-IP      PORT(S)          AGE
-servicegraph   LoadBalancer   10.23.248.204   35.203.158.146   8088:31262/TCP   9m
-```
-
-Notice the `External IP` assigned to the service. 
-
-Open your browser to http://<EXTERNAL-IP>:8088/dotviz replacing with the actual IP from your service.
-
-You will now see something similar to the following:
-
-![servicegraph](media/servicegraph-1.png)
 
 ## Fault Injection <a name="fault-injection"/>
 
+### Fault Injection using HTTP Delay
 This task shows how to inject delays and test the resiliency of your application.
 
 *_Note: This assumes you don’t have any routes set yet. If you’ve already created conflicting route rules for the sample, you’ll need to use replace rather than create in one or both of the following commands._*
@@ -411,28 +336,124 @@ To test our BookInfo application microservices for resiliency, we will inject a 
 Create a fault injection rule to delay traffic coming from user “jason” (our test user)
 
 ```
-istioctl create -f samples/bookinfo/kube/route-rule-ratings-test-delay.yaml
+kubectl apply -f samples/bookinfo/routing/route-rule-all-v1-mtls.yaml
+kubectl apply -f samples/bookinfo/routing/route-rule-reviews-test-v2.yaml
 ```
 
 Run the command:
 ```
-istioctl get routerule ratings-test-delay -o yaml
+kubectl apply -f samples/bookinfo/routing/route-rule-ratings-test-delay.yaml
 ```
 You should see the yaml for the routing rule. Allow several seconds to account for rule propagation delay to all pods.
 
-### Observe application behavior
+##### Observe application behavior
 
 Log in as user “jason”. If the application’s front page was set to correctly handle delays, we expect it to load within approximately 7 seconds. To see the web page response times, open the Developer Tools menu in IE, Chrome or Firefox (typically, key combination _Ctrl+Shift+I or Alt+Cmd+I_), tab Network, and reload the _productpage_ web page.
 
 You will see that the webpage loads in about 6 seconds. The reviews section will show _Sorry, product reviews are currently unavailable for this book_.
 
-### Understanding what happened
+#### Understanding what happened
 The reason that the entire reviews service has failed is because our BookInfo application has a bug. The timeout between the productpage and reviews service is less (3s + 1 retry = 6s total) than the timeout between the reviews and ratings service (10s). These kinds of bugs can occur in typical enterprise applications where different teams develop different microservices independently. Istio’s fault injection rules help you identify such anomalies without impacting end users.
 
 **Notice that we are restricting the failure impact to user “jason” only. If you login as any other user, you would not experience any delays**
 
+### Fault Injection using HTTP Abort
+As another test of resiliency, we will introduce an HTTP abort to the ratings microservices for the user “jason”. We expect the page to load immediately unlike the delay example and display the “product ratings not available” message.
+
+Create a fault injection rule to send an HTTP abort for user “jason”
+
+```
+kubectl apply -f samples/bookinfo/routing/route-rule-ratings-test-abort.yaml
+```
+
+#### Observe application behavior
+
+Login as user “jason”. If the rule propagated successfully to all pods, you should see the page load immediately with the “product ratings not available” message. Logout from user “jason” and you should see reviews with rating stars show up successfully on the productpage web page
+
+#### Remove the fault rules
+Clean up the fault rules with the command:
+
+```
+kubectl delete -f samples/bookinfo/routing/route-rule-all-v1.yaml
+```
+## Circuit Breaker <a name="circuit"/>
+This task demonstrates the circuit-breaking capability for resilient applications. Circuit breaking allows developers to write applications that limit the impact of failures, latency spikes, and other undesirable effects of network peculiarities.
+
+### Define a Destination Rule
+DestinationRule defines policies that apply to traffic intended for a service after routing has occurred. These rules specify configuration for load balancing, connection pool size from the sidecar, and outlier detection settings to detect and evict unhealthy hosts from the load balancing pool.
+
+Run the following command:
+```
+cat <<EOF | istioctl create -f -
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: details-breaker
+  namespace: default
+spec:
+  host: details.default.svc.cluster.local
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL
+    connectionPool:
+      tcp:
+        maxConnections: 1
+      http:
+        http1MaxPendingRequests: 1
+        maxRequestsPerConnection: 1
+    outlierDetection:
+      http:
+        consecutiveErrors: 1
+        interval: 1s
+        baseEjectionTime: 3m
+        maxEjectionPercent: 100
+EOF
+```
+This enables a destination rule that applies a circuit breaker to the details service. 
+
+### Setup a Client application
+
+Run the command:
+```
+kubectl apply -f <(istioctl kube-inject -f samples/httpbin/sample-client/fortio-deploy.yaml)
+```
+
+Store the pod name in an env var
+
+```
+export FORTIO_POD=$(kubectl get pod | grep fortio | awk '{ print $1 }')
+```
+
+Generate some load
+```
+kubectl exec -it $FORTIO_POD  -c fortio /usr/local/bin/fortio -- load -c 2 -qps 0 -n 20 -loglevel Warning http://details:9080/details/0
+```
+OUTPUT:
+```
+Fortio 1.0.1 running at 0 queries per second, 1->1 procs, for 20 calls: http://details:9080/details/0
+Starting at max qps with 2 thread(s) [gomax 1] for exactly 20 calls (10 per thread + 0)
+05:18:06 W http_client.go:604> Parsed non ok code 503 (HTTP/1.1 503)
+....
+Sockets used: 13 (for perfect keepalive, would be 2)
+Code 200 : 8 (40.0 %)
+Code 503 : 12 (60.0 %)
+Response Header Sizes : count 20 avg 63.3 +/- 77.53 min 0 max 159 sum 1266
+Response Body/Total Sizes : count 20 avg 264.7 +/- 58.42 min 217 max 337 sum 5294
+All done 20 calls (plus 0 warmup) 4.333 ms avg, 320.2 qps
+```
+
+Only 40% of requests made it through, the rest were blocked by the circuit breaker.
+
+### Cleanup
+```
+istioctl delete destinationrule details-breaker
+```
+
+
+
+
 ## Security <a name="security"/>
-### Testing Istio mutual TLS authentication
+### Testing Istio mutual TLS authentication <a name="mutual"/>
 Through this task, you will learn how to:
 * Verify the Istio mutual TLS Authentication setup
 * Manually test the authentication
@@ -440,86 +461,60 @@ Through this task, you will learn how to:
 Verify the cluster-level CA is running:
 
 ```
-kubectl get deploy -l istio=istio-ca -n istio-system
+kubectl get deploy -l istio=citadel -n istio-system
 ```
 OUTPUT:
 ```
-NAME       DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE
-istio-ca   1         1         1            1           1m
+NAME            DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE
+istio-citadel   1         1         1            1           3h
 ```
-#### Verify Service Configuration
-Verify AuthPolicy setting in ConfigMap
+#### Verify Service Configuration 
+NOTE: Although this method works on Istio 0.8, it will be deprecated in the upcoming releases.
+Check installation mode. If mutual TLS is enabled by default (e.g istio-demo-auth.yaml was used when installing Istio), you can expect to see uncommented authPolicy: MUTUAL_TLS in the configmap
 ```
 kubectl get configmap istio -o yaml -n istio-system | grep authPolicy | head -1
 ```
 Istio mutual TLS authentication is enabled if the line **authPolicy: MUTUAL_TLS** is uncommented (doesn’t have a **#**).
+
+Check destination rule. Starting with Istio 0.8, destination rule’s traffic policy is used to configure client side to use (or not use) mutual TLS.
+
+```
+kubectl get destinationrules.networking.istio.io --all-namespaces -o yaml
+```
+
+#### Enable mTLS on all services
+NOTE: Starting Istio 0.8, enabling mTLS is controlled through the authentication policy.
+
+To enable mTLS on all services deployed in the default namesapce,
+```
+cat <<EOF | istioctl create -f -
+apiVersion: authentication.istio.io/v1alpha1
+kind: Policy
+metadata:
+  name: mtls-enable-default
+  namespace: default
+spec:
+  peers:
+  - mtls:
+EOF
+```
+
 #### Testing the authentication setup
 We are going to install a sample application into the cluster and try and access the services directly.
 
-Prior to the next lab we need to install Docker with the following command:
-```
-curl -fsSL get.docker.com | bash && sudo usermod -aG docker play
-```
-
-After installing Docker go ahead and logout/log back in.
-
-After logging back in we need to add `istioctl` back to our `PATH`
-```
-export PATH=$PWD/bin:$PATH
-```
-
 1. Switch to the sample app folder
 ```
-git clone https://github.com/srinandan/istio-workshop.git && cd istio-workshop/mtlstest
+cd mtlstest
+```
+2. Deploy the app to Kubernetes
+```
+kubectl create -f <(istioctl kube-inject -f mtlstest.yaml) --validate=true --dry-run=false
 ```
 
-2. Set the PROJECT_ID as the environment variable
-```
-export PROJECT_ID=$(gcloud info --format='value(config.project)')
-```
-
-3. Edit the Kubernetes configuration file (mtlstest.yaml) and add the PROJECT_ID
-```
-vi mtlstest.yaml
-```
-
-change this and add the project id:
-```
-image: gcr.io/PROJECT_ID/mtlstest:latest
-```
-save the file.
-
-4. Build the docker image and push it to GCR (Google Container Repo)
-```
-./dockerbuild.sh
-```
-NOTE: you may have to run "chmod +x dockerbuild.sh"
-
-5. Deploy the app to Kubernetes
-```
-./k8ssetup.sh
-```
-
-6. Verify the application was deployed successfully, by checking Pods and Services
-```
-kubectl get pods
-```
-
-```
-NAME                              READY     STATUS    RESTARTS   AGE
-details-v1-8f6644c67-nqdpk        2/2       Running   0          1h
-mtlstest-5c8fb7d7cf-khvkr         2/2       Running   0          1m
-productpage-v1-5c69df955f-ngpr4   2/2       Running   0          1h
-ratings-v1-65f9fbd5f5-mgr82       2/2       Running   0          1h
-reviews-v1-db5c9cd59-zdmz4        2/2       Running   0          1h
-reviews-v2-5fb57bccc5-kbpbt       2/2       Running   0          1h
-reviews-v3-5884c46f75-f5697       2/2       Running   0          1h
-```
-
+3. Verify the application was deployed successfully
 ```
 kubectl get svc
 ```
-
 
 OUTPUT:
 ```
@@ -533,26 +528,30 @@ reviews       ClusterIP   10.59.250.46    <none>        9080/TCP   12m
 ```
 NOTE: The cluster IP for the **details** app. This app is running on port 9080
 
-7. Access the mtltest pod
+4. Access the mtltest pod (replace with actual pod name)
 ```
-kubectl exec -it mtlstest-bbf7bd6c-9rmwn /bin/bash
+kubectl exec -it <mtlstest-bbf7bd6c-9rmwn> /bin/bash
 ```
 
-8. Run cURL to access to the details app
+5. Run cURL to access to the details app
 ```
 curl -k -v https://details:9080/details/0
 ```
 
 OUTPUT:
 ```
-* About to connect() to 10.59.254.1 port 9080 (#0)
-*   Trying 10.59.254.1...
-* Connected to 10.59.254.1 (10.59.254.1) port 9080 (#0)
-* Initializing NSS with certpath: sql:/etc/pki/nssdb
-* NSS error -12263 (SSL_ERROR_RX_RECORD_TOO_LONG)
-* SSL received a record that exceeded the maximum permissible length.
+*   Trying 10.35.255.72...
+* TCP_NODELAY set
+* Connected to details (10.35.255.72) port 9080 (#0)
+* ALPN, offering h2
+* ALPN, offering http/1.1
+* successfully set certificate verify locations:
+*   CAfile: /etc/ssl/certs/ca-certificates.crt
+  CApath: /etc/ssl/certs
+* TLSv1.2 (OUT), TLS handshake, Client hello (1):
+* error:1408F10B:SSL routines:ssl3_get_record:wrong version number
 * Closing connection 0
-curl: (35) SSL received a record that exceeded the maximum permissible length.
+curl: (35) error:1408F10B:SSL routines:ssl3_get_record:wrong version number
 ```
 **NOTE**: If security (mTLS) was **NOT** enabled on the services, you would have see the output (status 200)
 #### Accessing the Service
@@ -566,11 +565,11 @@ kubectl get secret istio.default -o jsonpath='{.data.cert-chain\.pem}' | base64 
 kubectl get secret istio.default -o jsonpath='{.data.key\.pem}' | base64 --decode > key.pem
 ```
 
-2. Copy the files to the mtlstest POD
+2. Copy the files to the mtlstest POD (replace with actual pod name)
 ```
-kubectl cp root-cert.pem mtlstest-bbf7bd6c-gfpjk:/tmp -c mtlstest
-kubectl cp cert-chain.pem mtlstest-bbf7bd6c-gfpjk:/tmp -c mtlstest
-kubectl cp key.pem mtlstest-bbf7bd6c-gfpjk:/tmp -c mtlstest
+kubectl cp root-cert.pem mtlstest-854c4c9b85-gwr82:/tmp -c mtlstest
+kubectl cp cert-chain.pem mtlstest-854c4c9b85-gwr82:/tmp -c mtlstest
+kubectl cp key.pem mtlstest-854c4c9b85-gwr82:/tmp -c mtlstest
 ```
 
 3. Start a bash to the mtlstest POD
@@ -586,7 +585,7 @@ productpage-v1-54d4776d48-z8xxv   2/2       Running   0          5h
 ```
 
 ```
-kubectl exec -it mtlstest-bbf7bd6c-gfpjk /bin/bash
+kubectl exec -it mtlstest-854c4c9b85-gwr82 /bin/bash
 ```
 
 4. Move the PEM files to the appropriate folder (/etc/certs - which is the default folder)
@@ -597,564 +596,384 @@ mkdir /etc/certs
 mv /tmp/*.pem /etc/certs/
 ```
 
-5. Create a new user and group
-**NOTE:** Envoy does **NOT** intercept traffic from "root" user. Therefore we will create a test user
-```
- groupadd mtlstest
- useradd mtlstest -g mtlstest
-```
-6. Change to the test user "mtlstest"
-```
-su - mtlstest
-```
-
-7. Access the application
+5. Access the application
 ```
 curl -v http://details:9080/details/0
 ```
 OUTPUT:
 ```
-* About to connect() to details port 9080 (#0)
-*   Trying 10.59.254.1...
-* Connected to details (10.59.254.1) port 9080 (#0)
+*   Trying 10.35.255.72...
+* TCP_NODELAY set
+* Connected to details (10.35.255.72) port 9080 (#0)
 > GET /details/0 HTTP/1.1
-> User-Agent: curl/7.29.0
 > Host: details:9080
+> User-Agent: curl/7.58.0
 > Accept: */*
 >
 < HTTP/1.1 200 OK
 < content-type: application/json
 < server: envoy
-< date: Mon, 05 Feb 2018 04:44:14 GMT
+< date: Mon, 25 Jun 2018 03:50:17 GMT
 < content-length: 178
-< x-envoy-upstream-service-time: 54
+< x-envoy-upstream-service-time: 19
 <
 * Connection #0 to host details left intact
-{"id":0,"author":"William Shakespeare","year":1595,"type":"paperback","pages":200,"publisher":"PublisherA","language":"English","ISBN-10":"1234567890","ISBN-13":"123-1234567890"}[mtlstest@mtlstest-bbf7bd6c-gfpjk ~]
+{"id":0,"author":"William Shakespeare","year":1595,"type":"paperback","pages":200,"publisher":"PublisherA","language":"English","ISBN-10":"1234567890","ISBN-13":"123-1234567890"}root@mtlstest-854c4c9b85-gwr82:/tmp
 ```
-**NOTE**:
+**NOTE**: 
 1. You didn't have to specify _https_ when accessing the service.
-2. Envoy automatically established mTLS between the consumer (mtlstest) and the provider (details)
-#### Preventing Unauthorized access
-We saw how an application (mtlstest) was able access the service with the necessary key and cert. Istio also helps you prevent such access. In the application we have, the _details_ application must only be accessed by the _productpage_ application.
-
-We are first going to create a service account for the _productpage_ application. For more information about service accounts, please refer [here](https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/). Run the command:
-```
-kubectl apply -f <(istioctl kube-inject -f bookinfo-add-serviceaccount.yaml)
-```
-
-Output:
-```
-serviceaccount "bookinfo-productpage" created
-Warning: kubectl apply should be used on resource created by either kubectl create --save-config or kubectl apply
-deployment "productpage-v1" configured
-```
-**NOTE**: It is safe to ignore this warning.
-
-We are now going to deploy a mixer rule that denies access to other services (services that are not _productpage_). Review this snippet:
-```
-spec:
-  match: destination.labels["app"] == "details" && source.user != "cluster.local/ns/default/sa/bookinfo-productpage"
-  actions:
-  - handler: denyproductpagehandler.denier
-    instances: [ denyproductpagerequest.checknothing ]
-```
-The match string says if the target/destination service is _details_ and the source (service account) is not productpage, then deny access. The term _source.user_ is automatically populated by Envoy during the mTLS handshake. It is the identity of the immediate sender of the request, authenticated by mTLS. Therefore we can trust the value contained within it. Now we will deploy this rule.
-
-```
-istioctl create -f mixer-rule-deny-others.yaml
-```
-Output:
-```
-Created config denier/default/denyproductpagehandler at revision 165636
-Created config checknothing/default/denyproductpagerequest at revision 165637
-Created config rule/default/denyproductpage at revision 165638
-```
-
-Now, try to access the service again.
-
-```
-kubectl exec -it mtlstest-bbf7bd6c-gfpjk /bin/bash
-```
-```
-su - mtlstest
-```
-```
-curl -v http://details:9080/details/0
-```
-Output:
-```
-* About to connect() to details port 9080 (#0)
-*   Trying 10.59.254.1...
-* Connected to details (10.59.254.1) port 9080 (#0)
-> GET /details/0 HTTP/1.1
-> User-Agent: curl/7.29.0
-> Host: details:9080
-> Accept: */*
->
-< HTTP/1.1 403 Forbidden
-< content-length: 67
-< content-type: text/plain
-< date: Tue, 06 Feb 2018 01:03:05 GMT
-< server: envoy
-< x-envoy-upstream-service-time: 35
-<
-* Connection #0 to host details left intact
-PERMISSION_DENIED:denyproductpagehandler.denier.default:Not allowed
-```
+2. Envoy automatically established mTLS between the consumer (mtlstest) and the provider (details) 
 
 ### Further Reading
 Learn more about the design principles behind Istio’s automatic mTLS authentication between all services in this [blog](https://istio.io/blog/istio-auth-for-microservices.html)
 
-## Request routing 
-This task shows you how to configure dynamic request routing based on weights and HTTP headers.
+### Testing Istio RBAC <a name="rbac"/>
+Istio Role-Based Access Control (RBAC) provides namespace-level, service-level, method-level access control for services in the Istio Mesh. It features:
+* Role-Based semantics, which is simple and easy to use.
+* Service-to-service and endUser-to-Service authorization.
+* Flexibility through custom properties support in roles and role-bindings.
 
-## Content-based routing
+In this part of the lab, we will create a service role  that gives read only access to a certain set of services. First we enable RBAC.
+```
+istioctl create -f samples/bookinfo/kube/istio-rbac-enable.yaml
+```
+OUTPUT:
+```
+Created config authorization/istio-system/requestcontext at revision 197480
+Created config rbac/istio-system/handler at revision 197481
+Created config rule/istio-system/rbaccheck at revision 197482
+```
 
-Because the Bookinfo sample deploys 3 versions of the reviews microservice,
-we need to set a default route.
-Otherwise if you access the application several times, you'll notice that sometimes the output contains
-star ratings.
-This is because without an explicit default version set, Istio will
-route requests to all available versions of a service in a random fashion.
-
-> This task assumes you don't have any routes set yet. Because we've already deployed some routes we are going to
-use `replace` rather than `create` in the following commands.
-
-1. Set the default version for all microservices to v1.
-
-   ```bash
-   istioctl replace -f samples/bookinfo/kube/route-rule-all-v1.yaml
-   ```
-
-    You can display the routes that are defined with the following command:
-
-   ```bash
-   istioctl get routerules -o yaml
-   ```
-   ```yaml
-   apiVersion: config.istio.io/v1alpha2
-   kind: RouteRule
-   metadata:
-     name: details-default
-     namespace: default
-     ...
-   spec:
-     destination:
-       name: details
-     precedence: 1
-     route:
-     - labels:
-         version: v1
-   ---
-   apiVersion: config.istio.io/v1alpha2
-   kind: RouteRule
-   metadata:
-     name: productpage-default
-     namespace: default
-     ...
-   spec:
-     destination:
-       name: productpage
-     precedence: 1
-     route:
-     - labels:
-         version: v1
-   ---
-   apiVersion: config.istio.io/v1alpha2
-   kind: RouteRule
-   metadata:
-     name: ratings-default
-     namespace: default
-     ...
-   spec:
-     destination:
-       name: ratings
-     precedence: 1
-     route:
-     - labels:
-         version: v1
-   ---
-   apiVersion: config.istio.io/v1alpha2
-   kind: RouteRule
-   metadata:
-     name: reviews-default
-     namespace: default
-     ...
-   spec:
-     destination:
-       name: reviews
-     precedence: 1
-     route:
-     - labels:
-         version: v1
-   ---
-   ```
-
-   Since rule propagation to the proxies is asynchronous, you should wait a few seconds for the rules
-   to propagate to all pods before attempting to access the application.
-
-1. Open the Bookinfo URL (http://$GATEWAY_URL/productpage) in your browser
-
-   You should see the Bookinfo application productpage displayed.
-   Notice that the `productpage` is displayed with no rating stars since `reviews:v1` does not access the ratings service.
-
-1. Route a specific user to `reviews:v2`
-
-   Lets enable the ratings service for test user "jason" by routing productpage traffic to
-   `reviews:v2` instances.
-
-   ```bash
-   istioctl create -f samples/bookinfo/kube/route-rule-reviews-test-v2.yaml
-   ```
-
-   Confirm the rule is created:
-
-   ```bash
-   istioctl get routerule reviews-test-v2 -o yaml
-   ```
-   ```yaml
-   apiVersion: config.istio.io/v1alpha2
-   kind: RouteRule
-   metadata:
-     name: reviews-test-v2
-     namespace: default
-     ...
-   spec:
-     destination:
-       name: reviews
-     match:
-       request:
-         headers:
-           cookie:
-             regex: ^(.*?;)?(user=jason)(;.*)?$
-     precedence: 2
-     route:
-     - labels:
-         version: v2
-   ```
-
-1. Log in as user "jason" at the `productpage` web page.
-
-   You should now see ratings (1-5 stars) next to each review. Notice that if you log in as
-   any other user, you will continue to see `reviews:v1`.
-
-## Understanding what happened
-
-In this task, you used Istio to send 100% of the traffic to the v1 version of each of the Bookinfo
-services. You then set a rule to selectively send traffic to version v2 of the reviews service based
-on a header (i.e., a user cookie) in a request.
-
-Once the v2 version has been tested to our satisfaction, we could use Istio to send traffic from
-all users to v2, optionally in a gradual fashion. We'll explore this in a separate task.
-
-## Cleanup
-
-* Remove the application routing rules.
-
-  ```bash
-  istioctl delete -f samples/bookinfo/kube/route-rule-all-v1.yaml
-  istioctl delete -f samples/bookinfo/kube/route-rule-reviews-test-v2.yaml
-  ```
-
-## Traffic migration
-
-This task shows you how to gradually migrate traffic from an old to new version of a service.
-With Istio, we can migrate the traffic in a gradual fashion by using a sequence of rules
-with weights less than 100 to migrate traffic in steps, for example 10, 20, 30, ... 100%.
-For simplicity this task will migrate the traffic from `reviews:v1` to `reviews:v3` in just
-two steps: 50%, 100%.
-
-## Weight-based version routing
-
-1. Set the default version for all microservices to v1.
-
-   ```bash
-   istioctl create -f samples/bookinfo/kube/route-rule-all-v1.yaml
-   ```
-
-1. Confirm v1 is the active version of the `reviews` service by opening http://$GATEWAY_URL/productpage in your browser.
-
-   You should see the Bookinfo application productpage displayed.
-   Notice that the `productpage` is displayed with no rating stars since `reviews:v1` does not access the ratings service.
-
-   > If you previously ran the [request routing](./request-routing.html) task, you may need to either log out
-   as test user "jason" or delete the test rules that were created exclusively for him:
-
-   ```bash
-   istioctl delete routerule reviews-test-v2
-   ```
-
-1. First, transfer 50% of the traffic from `reviews:v1` to `reviews:v3` with the following command:
-
-   ```bash
-   istioctl replace -f samples/bookinfo/kube/route-rule-reviews-50-v3.yaml
-   ```
-
-   Notice that we are using `istioctl replace` instead of `create`.
-
-   Confirm the rule was replaced:
-
-   ```bash
-   istioctl get routerule reviews-default -o yaml
-   ```
-   ```yaml
-   apiVersion: config.istio.io/v1alpha2
-   kind: RouteRule
-   metadata:
-     name: reviews-default
-     namespace: default
-   spec:
-     destination:
-       name: reviews
-     precedence: 1
-     route:
-     - labels:
-         version: v1
-       weight: 50
-     - labels:
-         version: v3
-       weight: 50
-   ```
-
-1. Refresh the `productpage` in your browser and you should now see *red* colored star ratings approximately 50% of the time.
-
-   > With the current Envoy sidecar implementation, you may need to refresh the `productpage` very many times
-   > to see the proper distribution. It may require 15 refreshes or more before you see any change. You can modify the rules to route 90% of the traffic to v3 to see red stars more often.
-
-1. When version v3 of the `reviews` microservice is considered stable, we can route 100% of the traffic to `reviews:v3`:
-
-   ```bash
-   istioctl replace -f samples/bookinfo/kube/route-rule-reviews-v3.yaml
-   ```
-
-   You can now log into the `productpage` as any user and you should always see book reviews
-   with *red* colored star ratings for each review.
-
-## Understanding what happened
-
-In this task we migrated traffic from an old to new version of the `reviews` service using Istio's
-weighted routing feature. Note that this is very different than version migration using deployment features
-of container orchestration platforms, which use instance scaling to manage the traffic.
-With Istio, we can allow the two versions of the `reviews` service to scale up and down independently,
-without affecting the traffic distribution between them.
-For more about version routing with autoscaling, check out [Canary Deployments using Istio]({{home}}/blog/canary-deployments-using-istio.html).
-
-## Cleanup
-
-* Remove the application routing rules.
-
-  ```bash
-  istioctl delete -f samples/bookinfo/kube/route-rule-all-v1.yaml
-  ```
-
-## Traffic mirroring 
-
-This task demonstrates Istio's traffic shadowing/mirroring capabilities. Traffic mirroring is a powerful concept that allows feature teams to bring
-changes to production with as little risk as possible. Mirroring brings a copy of live traffic to a mirrored service and happens out of band of the critical request path for the primary service.
-
-* Start two versions of the `httpbin` service that have access logging enabled
-
-httpbin-v1:
-
-```bash
-cat <<EOF | istioctl kube-inject -f - | kubectl create -f -
-apiVersion: extensions/v1beta1
-kind: Deployment
+Now, review the service role and service role binding we'll be creating
+```
+apiVersion: "config.istio.io/v1alpha2"
+kind: ServiceRole
 metadata:
-  name: httpbin-v1
+  name: service-viewer
+  namespace: default
 spec:
-  replicas: 1
-  template:
-    metadata:
-      labels:
-        app: httpbin
-        version: v1
-    spec:
-      containers:
-      - image: docker.io/kennethreitz/httpbin
-        imagePullPolicy: IfNotPresent
-        name: httpbin
-        command: ["gunicorn", "--access-logfile", "-", "-b", "0.0.0.0:8080", "httpbin:app"]
-        ports:
-        - containerPort: 8080
-EOF
+  rules:
+  - services: ["*"]
+    methods: ["GET"]
+    constraints:
+    - key: "app"
+      values: ["productpage", "details", "reviews", "ratings", "mtlstest"]
 ```
-httpbin-v2:
 
-```bash
-cat <<EOF | istioctl kube-inject -f - | kubectl create -f -
-apiVersion: extensions/v1beta1
-kind: Deployment
+This service role allows only the GET operation on all the services listed in `values`. Deploy the rule from the class lab directory
+
+```
+istioctl create -f rbac/istio-rbac-namespace.yaml
+```
+
+OUTPUT:
+```
+Created config service-role/default/service-viewer at revision 196402
+Created config service-role-binding/default/bind-service-viewer at revision 196403
+```
+
+Access the mtlstest POD (replace with actual pod name)
+```
+kubectl exec -it mtlstest-854c4c9b85-gwr82 /bin/bash
+```
+
+Try to access the application
+```
+curl -v http://details:9080/details/0
+```
+
+This should work successfully because we did not block GET calls. Now let's try to create/POST
+```
+curl -v http://details:9080/details/0 -X POST -d '{}'
+```
+
+OUTPUT:
+```
+Note: Unnecessary use of -X or --request, POST is already inferred.
+*   Trying 10.35.255.72...
+* TCP_NODELAY set
+* Connected to details (10.35.255.72) port 9080 (#0)
+> POST /details/0 HTTP/1.1
+> Host: details:9080
+> User-Agent: curl/7.58.0
+> Accept: */*
+> Content-Length: 2
+> Content-Type: application/x-www-form-urlencoded
+>
+* upload completely sent off: 2 out of 2 bytes
+< HTTP/1.1 403 Forbidden
+< content-length: 68
+< content-type: text/plain
+< date: Tue, 26 Jun 2018 05:39:51 GMT
+< server: envoy
+< x-envoy-upstream-service-time: 7
+<
+* Connection #0 to host details left intact
+PERMISSION_DENIED:handler.rbac.istio-system:RBAC: permission denied.
+```
+
+The create/POST failed. You can learn more about Istio RBAC [here](https://istio.io/docs/concepts/security/rbac/)
+
+Delete RBAC resources
+
+```
+istioctl delete -f rbac/istio-rbac-namespace.yaml
+istioctl delete -f samples/bookinfo/kube/istio-rbac-enable.yaml
+```
+
+### Testing Istio JWT Policy <a name="jwt"/>
+Through this task, you will learn how to enable JWT validation on specific services in the mesh.
+
+#### Scenario
+Let's assume you want to expose the details API outside the service mesh (available on the ingress). To do this, first we look at the virtual service
+
+```
+istioctl get virtualservices bookinfo -o yaml > bookinfo.yaml
+```
+
+Edit the file to expose the details service by adding a `match` section for `/details`. The final file should look like:
+```
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
 metadata:
-  name: httpbin-v2
+  name: bookinfo
+  namespace: default
 spec:
-  replicas: 1
-  template:
-    metadata:
-      labels:
-        app: httpbin
-        version: v2
-    spec:
-      containers:
-      - image: docker.io/kennethreitz/httpbin
-        imagePullPolicy: IfNotPresent
-        name: httpbin
-        command: ["gunicorn", "--access-logfile", "-", "-b", "0.0.0.0:8080", "httpbin:app"]
-        ports:
-        - containerPort: 8080
-EOF
+  gateways:
+  - bookinfo-gateway
+  hosts:
+  - '*'
+  http:
+  - match:
+    - uri:
+        exact: /productpage
+    - uri:
+        exact: /login
+    - uri:
+        exact: /logout
+    - uri:
+        prefix: /api/v1/products
+    route:
+    - destination:
+        host: productpage
+        port:
+          number: 9080
+  - match:
+    - uri:
+        prefix: /details
+    route:
+    - destination:
+        host: details
+        port:
+           number: 9080
+---
 ```
 
-httpbin Kubernetes service:
+Deploy the virtual service
 
- ```bash
-cat <<EOF | kubectl create -f -
-apiVersion: v1
-kind: Service
+```
+kubectl apply -f bookinfo.yaml
+```
+Test access to the service.
+```
+curl -v http://$GATEWAY_URL/details/0 
+```
+
+OUTPUT:
+```
+{"id":0,"author":"William Shakespeare","year":1595,"type":"paperback","pages":200,"publisher":"PublisherA","language":"English","ISBN-10":"1234567890","ISBN-13":"123-1234567890"}
+```
+Alright, so now we can access this API. But, we have just opened the API to everyone. It is not always possible to use mTLS to protect traffic exposed on the ingress. Using a JWT policy at the ingress works great in such cases.
+
+#### Enable JWT Policy
+In this step we will enable the JWT policy on the details service. Take a look at jwttest/details-jwt.yaml
+
+The first section is defining how to enable the JWT
+```
+apiVersion: "authentication.istio.io/v1alpha1"
+kind: Policy
 metadata:
-  name: httpbin
-  labels:
-    app: httpbin
+  name: details-auth-spec
+  namespace: default
 spec:
-  ports:
-  - name: http
-    port: 8080
-  selector:
-    app: httpbin
-EOF
+  targets:
+  - name: details
+  peers:
+  - mtls:
+  origins:
+  - jwt:
+      issuer: https://amer-demo13-test.apigee.net/istio-auth/token
+      jwks_uri: https://amer-demo13-test.apigee.net/istio-auth/certs
+  principalBinding: USE_ORIGIN
 ```
-* Start the `sleep` service so we can use `curl` to provide load
+There are two critical pieces here:
+* The _Issuer_, every JWT token must match the issuer specified here
+* The _jwks_url_, this is an endpoint to where [JSON Web Key](https://tools.ietf.org/html/rfc7517) based public keys are hosted. Here is an [example](https://www.googleapis.com/oauth2/v2/certs) from Google. These public keys are used to verify the JWT.
 
-sleep service:
+Now, apply the policy
 
-```bash
-cat <<EOF | istioctl kube-inject -f - | kubectl create -f -
-apiVersion: extensions/v1beta1
-kind: Deployment
-metadata:
-  name: sleep
-spec:
-  replicas: 1
-  template:
-    metadata:
-      labels:
-        app: sleep
-    spec:
-      containers:
-      - name: sleep
-        image: tutum/curl
-        command: ["/bin/sleep","infinity"]
-        imagePullPolicy: IfNotPresent
-EOF
+```
+kubectl apply -f jwttest/details-jwt.yaml
 ```
 
-## Mirroring
-
-Let's set up a scenario to demonstrate the traffic-mirroring capabilities of Istio. We have two versions of our `httpbin` service. By default Kubernetes will load balance across both versions of the service. We'll use Istio to force all traffic to v1 of the `httpbin` service.
-
-### Creating default routing policy
-
-1. Create a default route rule to route all traffic to `v1` of our `httpbin` service:
-
-```bash
-cat <<EOF | istioctl create -f -
-apiVersion: config.istio.io/v1alpha2
-kind: RouteRule
-metadata:
-  name: httpbin-default-v1
-spec:
-  destination:
-    name: httpbin
-  precedence: 5
-  route:
-  - labels:
-      version: v1
-EOF
+OUTPUT:
+```
+policy "details-auth-spec" created
 ```
 
-Now all traffic should go to `httpbin v1` service. Let's try sending in some traffic:
-
-```bash
-export SLEEP_POD=$(kubectl get pod -l app=sleep -o jsonpath={.items..metadata.name})
-kubectl exec -it $SLEEP_POD -c sleep -- sh -c 'curl  http://httpbin:8080/headers'
-
-{
-  "headers": {
-    "Accept": "*/*",
-    "Content-Length": "0",
-    "Host": "httpbin:8080",
-    "User-Agent": "curl/7.35.0",
-    "X-B3-Sampled": "1",
-    "X-B3-Spanid": "eca3d7ed8f2e6a0a",
-    "X-B3-Traceid": "eca3d7ed8f2e6a0a",
-    "X-Ot-Span-Context": "eca3d7ed8f2e6a0a;eca3d7ed8f2e6a0a;0000000000000000"
-  }
-}
+Now let's try and access the API from the ingress.
+```
+curl -v http://$GATEWAY_URL/details/0
 ```
 
-If we check the logs for `v1` and `v2` of our `httpbin` pods, we should see access log entries for only `v1`:
-
-```bash
-kubectl logs -f httpbin-v1-2113278084-98whj -c httpbin
+OUTPUT:
 ```
-```xxx
-127.0.0.1 - - [07/Feb/2018:00:07:39 +0000] "GET /headers HTTP/1.1" 200 349 "-" "curl/7.35.0"
+*   Trying 35.227.168.43...
+* TCP_NODELAY set
+* Connected to 35.227.168.43 (35.227.168.43) port 80 (#0)
+> GET /details/0 HTTP/1.1
+> Host: 35.227.168.43
+> User-Agent: curl/7.52.1
+> Accept: */*
+>
+< HTTP/1.1 401 Unauthorized
+< content-length: 29
+< content-type: text/plain
+< date: Mon, 25 Jun 2018 16:04:56 GMT
+< server: envoy
+< x-envoy-upstream-service-time: 1
+<
+* Curl_http_done: called premature == 0
+* Connection #0 to host 35.227.168.43 left intact
+Origin authentication failed.
+```
+This is expected, we did not pass a JWT token.
+
+## Monitoring <a name="monitoring"/>
+
+## View metrics and tracing <a name="viewing-metrics-and-tracing"/>
+
+Istio-enabled applications can be configured to collect trace spans using, for instance, the popular [Jaeger](https://www.jaegertracing.io/docs/) distributed tracing system. Distributed tracing lets you see the flow of requests a user makes through your system, and Istio&#39;s model allows this regardless of what language/framework/platform you use to build your application.
+
+Configure port forwarding:
+
+```kubectl port-forward -n istio-system $(kubectl get pod -n istio-system -l app=jaeger -o jsonpath='{.items[0].metadata.name}') 8080:16686 &```
+
+If running on local machine open browser to `http://localhost:8080`, or if running on Google Cloud open your browser by clicking on "Preview on port 8080":
+![Istio](media/preview.png)
+
+Load the Bookinfo application again (http://$GATEWAY_URL/productpage).
+
+Select a service  from the list (ex: istio-ingressgateway), and you will now see something similar to the following:
+
+![Istio](media/metrics-1.png)
+
+You can see how long each microservice call took, including the Istio checks.
+
+You can read the [documentation page](https://istio.io/docs/tasks/telemetry/distributed-tracing.html) for further details on Istio&#39;s distributed request tracing.
+
+To stop the port forward, 
+```
+ctrl + c
+```
+Then bring the process to the foreground
+```
+fg
+```
+Then stop it again
+```
+ctrl + c
 ```
 
-1. Create a route rule to mirror traffic to v2
 
-```bash
-cat <<EOF | istioctl create -f -
-apiVersion: config.istio.io/v1alpha2
-kind: RouteRule
-metadata:
-  name: mirror-traffic-to-httbin-v2
-spec:
-  destination:
-    name: httpbin
-  precedence: 11
-  route:
-  - labels:
-      version: v1
-    weight: 100
-  - labels:
-      version: v2
-    weight: 0
-  mirror:
-    name: httpbin
-    labels:
-      version: v2
-EOF
+## Monitoring for Istio <a name="monitoring-for-istio"/>
+
+This task shows you how to setup and use the Istio Dashboard to monitor mesh traffic. As part of this task, you will install the Grafana Istio addon and use the web-based interface for viewing service mesh traffic data.
+
+First we install the Grafana addon:
+
+```kubectl apply -f install/kubernetes/addons/grafana.yaml```
+
+Grafana will be used to visualize the data prometheus.
+
+Configure port forwarding:
+
+```kubectl -n istio-system port-forward $(kubectl -n istio-system get pod -l app=grafana -o jsonpath='{.items[0].metadata.name}') 8080:3000 &```
+
+If running on local machine open browser to `http://localhost:8080`, or if running on Google Cloud open your browser by clicking on "Preview on port 8080":
+![Istio](media/preview.png)
+
+Load the Bookinfo application again (http://$GATEWAY_URL/productpage).
+
+Select a Istio Dashboard in the top left from the list, and you will now see something similar to the following:
+
+ ![monitoring](media/monitoring-1.png)
+
+ To stop the port forward, 
+```
+ctrl + c
+```
+Then bring the process to the foreground
+```
+fg
+```
+Then stop it again
+```
+ctrl + c
 ```
 
-This route rule specifies we route 100% of the traffic to v1 and 0% to v2. At the moment, it's necessary to call out the v2 service explicitly because this is
-what creates the envoy-cluster definitions in the background. In future versions, we'll work to improve this so we don't have to explicitly specify a 0% weighted routing.
+## Generating a Service Graph <a name="generate-graph"/>
+ 
+This task shows you how to generate a graph of services within an Istio mesh. As part of this task, you will install the ServiceGraph addon and use the web-based interface for viewing service graph of the service mesh.
 
-The last stanza specifies we want to mirror to the `httpbin v2` service. When traffic gets mirrored, the requests are sent to the mirrored service with its Host/Authority header appended with *-shadow*. For example, *cluster-1* becomes *cluster-1-shadow*. Also important to realize is that these requests are mirrored as "fire and forget", i.e., the responses are discarded.
+Configure port forwarding:
 
-Now if we send in traffic:
+```kubectl -n istio-system port-forward $(kubectl -n istio-system get pod -l app=servicegraph -o jsonpath='{.items[0].metadata.name}') 8080:8088 &```
 
-```bash
-kubectl exec -it $SLEEP_POD -c sleep -- sh -c 'curl  http://httpbin:8080/headers'
+If running on local machine open browser to `http://localhost:8080`, or if running on Google Cloud open your browser by clicking on "Preview on port 8080":
+![Istio](media/preview.png)
+
+NOTE: Edit the browser to add `/dotviz` manually. Like this: `https://8080-dot-2997305-dot-devshell.appspot.com/dotviz?authuser=0`
+
+You will now see something similar to the following:
+
+![servicegraph](media/servicegraph-1.png)
+
+To stop the port forward, 
+```
+ctrl + c
+```
+Then bring the process to the foreground
+```
+fg
+```
+Then stop it again
+```
+ctrl + c
 ```
 
-We should see access logging for both `v1` and `v2`. The access logs created in `v2` is the mirrored requests that are actually going to `v1`.
 
-## Cleaning up
+## Uninstall Istio <a name="uninstall-istio"/>
 
-1. Remove the rules.
+Here&#39;s how to uninstall Istio.
 
-   ```bash
-   istioctl delete routerule mirror-traffic-to-httbin-v2
-   istioctl delete routerule httpbin-default-v1
-   ```
+```
+kubectl delete -f samples/bookinfo/kube/bookinfo.yaml 
+```
+OUTPUT:
+```
+service    'details'    deleted
+deployment 'details-v1' deleted
+service    'ratings'    deleted
+deployment 'ratings-v1' deleted
+service    'reviews'    deleted
+deployment 'reviews-v1' deleted
+deployment 'reviews-v2' deleted
+deployment 'reviews-v3' deleted
+service    'productpage' deleted
+deployment 'productpage-v1' deleted
+```
+ 
+```kubectl delete -f install/kubernetes/istio-auth.yaml```
 
-1. Shutdown the [httpbin](https://github.com/istio/istio/tree/master/samples/httpbin) service and client.
 
-   ```bash
-   kubectl delete deploy httpbin-v1 httpbin-v2 sleep
-   kubectl delete svc httpbin
-   ```
-
-# Lab Complete 

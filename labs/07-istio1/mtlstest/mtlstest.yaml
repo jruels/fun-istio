@@ -24,7 +24,7 @@ spec:
     spec:
       containers:
         - name: mtlstest
-          image: gcr.io/PROJECT_ID/mtlstest:latest
+          image: aslaen/mtlstest:latest
           imagePullPolicy: Always
           ports:
           - containerPort: 8080
