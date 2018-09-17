@@ -82,7 +82,7 @@ public class Main
 
 Now execute the following to compile the app.
 ```
-docker run --rm -v $PWD/app:/app -w /app demo/oracle-java:8 javac Main.java
+docker run --rm -v $PWD/:/app -w /app demo/oracle-java:8 javac Main.java
 ```
 
 To run the compiled application run:
