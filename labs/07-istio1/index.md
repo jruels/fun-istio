@@ -88,7 +88,7 @@ Initialize Helm to install tiller in your cluster
 Finally we can install Istio 
 
 ```
-helm install install/kubernetes/helm/istio \
+./helm install install/kubernetes/helm/istio \
     --name istio \
     --namespace istio-system \
     --set global.mtls.enabled=true \
