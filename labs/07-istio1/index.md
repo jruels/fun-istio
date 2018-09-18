@@ -56,7 +56,50 @@ Add the istioctl client to your PATH:
 
 Let&#39;s now install Istio&#39;s core components. We will install the Istio Auth components which enable [**mutual TLS authentication**](https://istio.io/docs/concepts/security/mutual-tls.html) between sidecars:
 
-```kubectl apply -f install/kubernetes/istio-demo-auth.yaml```
+In Istio 1.0 the recommeded installation tool is Helm. The following steps walk through installation of the Helm client, and using Helm to install Istio. 
+
+
+## Install Helm 
+
+```
+wget https://storage.googleapis.com/kubernetes-helm/helm-v2.10.0-linux-amd64.tar.gz
+tar xvf helm-v2.10.0-linux-amd64.tar.gz
+cp linux-amd64/helm . 
+```
+
+Now that Helm is installed we need to install the backend 
+
+Create tiller service account
+```
+kubectl create serviceaccount tiller --namespace kube-system
+```
+
+Grant tiller cluster admin role 
+```
+kubectl create clusterrolebinding tiller-admin-binding --clusterrole=cluster-admin --serviceaccount=kube-system:tiller
+```
+
+Initialize Helm to install tiller in your cluster 
+```
+./helm init --service-account=tiller
+./helm update
+```
+
+Finally we can install Istio 
+
+```
+helm install install/kubernetes/helm/istio \
+    --name istio \
+    --namespace istio-system \
+    --set global.mtls.enabled=true \
+    --set grafana.enabled=true \
+    --set servicegraph.enabled=true \
+    --set tracing.enabled=true \
+    --set kiali.enabled=true
+```
+
+This command will appear to hang for a couple minutes, but it is actually installing everything in the background. Once the installation is complete you will see output showing all of the components installed. 
+
 
 This creates the istio-system namespace along with the required RBAC permissions, and deploys Istio-Pilot, Istio-Mixer, Istio-Ingress, Istio-Egress, and Istio-CA (Certificate Authority).
 
@@ -142,9 +185,9 @@ The end-to-end architecture of the application is shown below.
 
 ### Deploy Bookinfo
 
-We deploy our application directly using kubectl create and its regular YAML deployment file. We will inject Envoy containers into your application pods using istioctl:
+We deploy our application directly using `kubectl create` and its regular YAML deployment file. We will inject Envoy containers into the application pods using istioctl:
 
-```kubectl create -f <(istioctl kube-inject -f samples/bookinfo/kube/bookinfo.yaml)```
+```kubectl create -f <(istioctl kube-inject -f samples/bookinfo/platform/kube/bookinfo.yaml)```
 
 Finally, confirm that the application has been deployed correctly by running the following commands:
 
@@ -182,11 +225,57 @@ With Envoy sidecars injected along side each service, the architecture will look
 
 ![bookinfoistio](media/bookinfo-istio.png)
 
-Finally, expose the service to be consumeable on the ingress
+Finally, expose the service
 
 ```
-istioctl create -f samples/bookinfo/routing/bookinfo-gateway.yaml
+cat <<EOF | kubectl apply -f -
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: bookinfo
+  namespace: default
+spec:
+  gateways:
+  - bookinfo-gateway
+  hosts:
+  - '*'
+  http:
+  - match:
+    - uri:
+        exact: /productpage
+    - uri:
+        exact: /login
+    - uri:
+        exact: /logout
+    - uri:
+        prefix: /api/v1/products
+    route:
+    - destination:
+        host: productpage
+        port:
+          number: 9080
+EOF
 ```
+
+```
+cat <<EOF | kubectl apply -f -
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: bookinfo-gateway
+spec:
+  selector:
+    istio: ingressgateway # use istio default controller
+  servers:
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+    hosts:
+    - "*"
+EOF
+```
+
 
 ## Use the application <a name="use-the-application"/>
 
@@ -195,19 +284,17 @@ Now that it&#39;s deployed, let&#39;s see the BookInfo application in action.
 If running on Google Container Engine run the following to determine ingress IP and port:
 
 ```
-kubectl get svc -o wide -n istio-system
+kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 
 ```
+
 OUTPUT:
 ```
-NAME      HOSTS     ADDRESS                 PORTS     AGE
-gateway   *         130.211.10.121          80        3m
+35.xxx.xxx.xxx
 ```
 
 Based on this information (Address), set the GATEWAY\_URL environment variable:
 
-```export GATEWAY_URL=130.211.10.121:80```
-
-NOTE : don't forget to append `:80` in the GATEWAY_URL
+```export GATEWAY_URL=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}')```
 
 If running on `localhost` set the `GATEWAY_URL` with the following:
 
@@ -237,11 +324,16 @@ We use the istioctl command line tool to control routing, adding a route rule th
 
 ```istioctl get destinationrules -n default```
 
-No Resouces will be found. Now, create the rule (check out the source yaml file if you&#39;d like to understand how rules are specified) :
+No Resouces will be found. Now, create the rule(check out the source yaml files if you&#39;d like to understand how rules are specified) :
 
-Run the command:
+Run the commands:
+
 ```
-kubectl apply -f samples/bookinfo/routing/route-rule-all-v1-mtls.yaml -n default
+kubectl apply -f samples/bookinfo/networking/virtual-service-all-v1.yaml -n default
+```
+
+```
+kubectl apply -f samples/bookinfo/networking/destination-rule-all-mtls.yaml -n default
 ```
 OUTPUT:
 ```
@@ -267,8 +359,6 @@ details           DestinationRule.networking.istio.io.v1alpha3   default
 productpage       DestinationRule.networking.istio.io.v1alpha3   default
 ratings           DestinationRule.networking.istio.io.v1alpha3   default
 reviews           DestinationRule.networking.istio.io.v1alpha3   default
-istio-policy      DestinationRule.networking.istio.io.v1alpha3   istio-system
-istio-telemetry   DestinationRule.networking.istio.io.v1alpha3   istio-system
 ```
 
 Go back to the Bookinfo application (http://$GATEWAY\_URL/productpage) in your browser. You should see the BookInfo application productpage displayed. Notice that the productpage is displayed with no rating stars since reviews:v1 does not access the ratings service.
@@ -276,13 +366,13 @@ Go back to the Bookinfo application (http://$GATEWAY\_URL/productpage) in your b
 To test reviews:v2, but only for a certain user, let&#39;s create this rule:
 
 ```
-kubectl apply -f samples/bookinfo/routing/route-rule-reviews-test-v2.yaml -n default
+kubectl apply -f samples/bookinfo/networking/virtual-service-reviews-test-v2.yaml -n default
 ```
 
 Check out the route-rule-reviews-test-v2.yaml file to see how this virtual service is specified :
 
 ```
-$ cat samples/bookinfo/kube/route-rule-reviews-test-v2.yaml
+$ cat samples/bookinfo/networking/virtual-service-reviews-test-v2.yaml
 ```
 OUTPUT:
 ```
@@ -321,7 +411,8 @@ Once the v2 version has been tested to our satisfaction, we could use Istio to s
 For now, let&#39;s clean up the routing rules:
 
 ```
-istioctl delete -f samples/bookinfo/routing/route-rule-all-v1-mtls.yaml 
+kubectl delete -f samples/bookinfo/networking/virtual-service-all-v1.yaml -n default
+kubectl delete -f samples/bookinfo/networking/destination-rule-all-mtls.yaml -n default
 ```
 
 ## Fault Injection <a name="fault-injection"/>
@@ -336,15 +427,15 @@ To test our BookInfo application microservices for resiliency, we will inject a 
 Create a fault injection rule to delay traffic coming from user “jason” (our test user)
 
 ```
-kubectl apply -f samples/bookinfo/routing/route-rule-all-v1-mtls.yaml
-kubectl apply -f samples/bookinfo/routing/route-rule-reviews-test-v2.yaml
+kubectl apply -f samples/bookinfo/networking/destination-rule-all-mtls.yaml
+kubectl apply -f samples/bookinfo/networking/virtual-service-reviews-test-v2.yaml
 ```
 
 Run the command:
 ```
-kubectl apply -f samples/bookinfo/routing/route-rule-ratings-test-delay.yaml
+kubectl apply -f samples/bookinfo/networking/virtual-service-ratings-test-delay.yaml
 ```
-You should see the yaml for the routing rule. Allow several seconds to account for rule propagation delay to all pods.
+You should see confirmation the routing rule was created. Allow several seconds to account for rule propagation delay to all pods.
 
 ##### Observe application behavior
 
@@ -363,35 +454,39 @@ As another test of resiliency, we will introduce an HTTP abort to the ratings mi
 Create a fault injection rule to send an HTTP abort for user “jason”
 
 ```
-kubectl apply -f samples/bookinfo/routing/route-rule-ratings-test-abort.yaml
+kubectl apply -f samples/bookinfo/networking/virtual-service-ratings-test-abort.yaml
 ```
 
 #### Observe application behavior
 
-Login as user “jason”. If the rule propagated successfully to all pods, you should see the page load immediately with the “product ratings not available” message. Logout from user “jason” and you should see reviews with rating stars show up successfully on the productpage web page
+Login as user “jason”. If the rule propagated successfully to all pods, you should see the page load immediately with the “product ratings not available” message. Logout from user “jason” and you should see reviews show up successfully on the productpage web page
 
 #### Remove the fault rules
 Clean up the fault rules with the command:
 
 ```
-kubectl delete -f samples/bookinfo/routing/route-rule-all-v1.yaml
+kubectl delete -f samples/bookinfo/networking/virtual-service-all-v1.yaml
 ```
 ## Circuit Breaker <a name="circuit"/>
 This task demonstrates the circuit-breaking capability for resilient applications. Circuit breaking allows developers to write applications that limit the impact of failures, latency spikes, and other undesirable effects of network peculiarities.
+
+## Add httpbin sample app
+```
+kubectl apply -f <(istioctl kube-inject -f samples/httpbin/httpbin.yaml)
+```
 
 ### Define a Destination Rule
 DestinationRule defines policies that apply to traffic intended for a service after routing has occurred. These rules specify configuration for load balancing, connection pool size from the sidecar, and outlier detection settings to detect and evict unhealthy hosts from the load balancing pool.
 
 Run the following command:
 ```
-cat <<EOF | istioctl create -f -
+cat <<EOF | kubectl apply -f -
 apiVersion: networking.istio.io/v1alpha3
 kind: DestinationRule
 metadata:
-  name: details-breaker
-  namespace: default
+  name: httpbin
 spec:
-  host: details.default.svc.cluster.local
+  host: httpbin
   trafficPolicy:
     tls:
       mode: ISTIO_MUTUAL
@@ -402,53 +497,151 @@ spec:
         http1MaxPendingRequests: 1
         maxRequestsPerConnection: 1
     outlierDetection:
-      http:
-        consecutiveErrors: 1
-        interval: 1s
-        baseEjectionTime: 3m
-        maxEjectionPercent: 100
+      consecutiveErrors: 1
+      interval: 1s
+      baseEjectionTime: 3m
+      maxEjectionPercent: 100
 EOF
 ```
+
 This enables a destination rule that applies a circuit breaker to the details service. 
 
 ### Setup a Client application
+
+Create a client to send traffic to the httpbin service. The client is a simple load-testing client called fortio. Fortio lets you control the number of connections, concurrency, and delays for outgoing HTTP calls. You will use this client to “trip” the circuit breaker policies you set in the DestinationRule.
 
 Run the command:
 ```
 kubectl apply -f <(istioctl kube-inject -f samples/httpbin/sample-client/fortio-deploy.yaml)
 ```
 
-Store the pod name in an env var
-
+Set environment variable
 ```
-export FORTIO_POD=$(kubectl get pod | grep fortio | awk '{ print $1 }')
-```
-
-Generate some load
-```
-kubectl exec -it $FORTIO_POD  -c fortio /usr/local/bin/fortio -- load -c 2 -qps 0 -n 20 -loglevel Warning http://details:9080/details/0
-```
-OUTPUT:
-```
-Fortio 1.0.1 running at 0 queries per second, 1->1 procs, for 20 calls: http://details:9080/details/0
-Starting at max qps with 2 thread(s) [gomax 1] for exactly 20 calls (10 per thread + 0)
-05:18:06 W http_client.go:604> Parsed non ok code 503 (HTTP/1.1 503)
-....
-Sockets used: 13 (for perfect keepalive, would be 2)
-Code 200 : 8 (40.0 %)
-Code 503 : 12 (60.0 %)
-Response Header Sizes : count 20 avg 63.3 +/- 77.53 min 0 max 159 sum 1266
-Response Body/Total Sizes : count 20 avg 264.7 +/- 58.42 min 217 max 337 sum 5294
-All done 20 calls (plus 0 warmup) 4.333 ms avg, 320.2 qps
+FORTIO_POD=$(kubectl get pod | grep fortio | awk '{ print $1 }')
 ```
 
-Only 40% of requests made it through, the rest were blocked by the circuit breaker.
+Log in to the client pod and use the fortio tool to call httpbin. Pass in -curl to indicate that you just want to make one call:
+```
+kubectl exec -it $FORTIO_POD  -c fortio /usr/local/bin/fortio -- load -curl  http://httpbin:8000/get
+```
+
+You can see the request succeeded! Now, it’s time to break something.
+
+### Tripping the circuit breaker
+In the DestinationRule settings, you specified maxConnections: 1 and http1MaxPendingRequests: 1. These rules indicate that if you exceed more than one connection and request concurrently, you should see some failures when the istio-proxy opens the circuit for further requests and connections.
+
+1. Call the service with two concurrent connections (-c 2) and send 20 requests (-n 20):
+```
+kubectl exec -it $FORTIO_POD  -c fortio /usr/local/bin/fortio -- load -c 2 -qps 0 -n 20 -loglevel Warning http://httpbin:8000/get
+```
+
+```
+Fortio 0.6.2 running at 0 queries per second, 2->2 procs, for 5s: http://httpbin:8000/get
+Starting at max qps with 2 thread(s) [gomax 2] for exactly 20 calls (10 per thread + 0)
+23:51:10 W http.go:617> Parsed non ok code 503 (HTTP/1.1 503)
+Ended after 106.474079ms : 20 calls. qps=187.84
+Aggregated Function Time : count 20 avg 0.010215375 +/- 0.003604 min 0.005172024 max 0.019434859 sum 0.204307492
+# range, mid point, percentile, count
+>= 0.00517202 <= 0.006 , 0.00558601 , 5.00, 1
+> 0.006 <= 0.007 , 0.0065 , 20.00, 3
+> 0.007 <= 0.008 , 0.0075 , 30.00, 2
+> 0.008 <= 0.009 , 0.0085 , 40.00, 2
+> 0.009 <= 0.01 , 0.0095 , 60.00, 4
+> 0.01 <= 0.011 , 0.0105 , 70.00, 2
+> 0.011 <= 0.012 , 0.0115 , 75.00, 1
+> 0.012 <= 0.014 , 0.013 , 90.00, 3
+> 0.016 <= 0.018 , 0.017 , 95.00, 1
+> 0.018 <= 0.0194349 , 0.0187174 , 100.00, 1
+# target 50% 0.0095
+# target 75% 0.012
+# target 99% 0.0191479
+# target 99.9% 0.0194062
+Code 200 : 19 (95.0 %)
+Code 503 : 1 (5.0 %)
+Response Header Sizes : count 20 avg 218.85 +/- 50.21 min 0 max 231 sum 4377
+Response Body/Total Sizes : count 20 avg 652.45 +/- 99.9 min 217 max 676 sum 13049
+All done 20 calls (plus 0 warmup) 10.215 ms avg, 187.8 qps
+```
+
+More requests were successful than failed.  
+```
+Code 200 : 19 (95.0 %)
+Code 503 : 1 (5.0 %)
+```
+
+2. Bring the number of concurrent connections up to 3:
+```
+kubectl exec -it $FORTIO_POD  -c fortio /usr/local/bin/fortio -- load -c 3 -qps 0 -n 20 -loglevel Warning http://httpbin:8000/get
+```
+
+```
+Fortio 0.6.2 running at 0 queries per second, 2->2 procs, for 5s: http://httpbin:8000/get
+Starting at max qps with 3 thread(s) [gomax 2] for exactly 30 calls (10 per thread + 0)
+23:51:51 W http.go:617> Parsed non ok code 503 (HTTP/1.1 503)
+23:51:51 W http.go:617> Parsed non ok code 503 (HTTP/1.1 503)
+23:51:51 W http.go:617> Parsed non ok code 503 (HTTP/1.1 503)
+23:51:51 W http.go:617> Parsed non ok code 503 (HTTP/1.1 503)
+23:51:51 W http.go:617> Parsed non ok code 503 (HTTP/1.1 503)
+23:51:51 W http.go:617> Parsed non ok code 503 (HTTP/1.1 503)
+23:51:51 W http.go:617> Parsed non ok code 503 (HTTP/1.1 503)
+23:51:51 W http.go:617> Parsed non ok code 503 (HTTP/1.1 503)
+23:51:51 W http.go:617> Parsed non ok code 503 (HTTP/1.1 503)
+23:51:51 W http.go:617> Parsed non ok code 503 (HTTP/1.1 503)
+23:51:51 W http.go:617> Parsed non ok code 503 (HTTP/1.1 503)
+Ended after 71.05365ms : 30 calls. qps=422.22
+Aggregated Function Time : count 30 avg 0.0053360199 +/- 0.004219 min 0.000487853 max 0.018906468 sum 0.160080597
+# range, mid point, percentile, count
+>= 0.000487853 <= 0.001 , 0.000743926 , 10.00, 3
+> 0.001 <= 0.002 , 0.0015 , 30.00, 6
+> 0.002 <= 0.003 , 0.0025 , 33.33, 1
+> 0.003 <= 0.004 , 0.0035 , 40.00, 2
+> 0.004 <= 0.005 , 0.0045 , 46.67, 2
+> 0.005 <= 0.006 , 0.0055 , 60.00, 4
+> 0.006 <= 0.007 , 0.0065 , 73.33, 4
+> 0.007 <= 0.008 , 0.0075 , 80.00, 2
+> 0.008 <= 0.009 , 0.0085 , 86.67, 2
+> 0.009 <= 0.01 , 0.0095 , 93.33, 2
+> 0.014 <= 0.016 , 0.015 , 96.67, 1
+> 0.018 <= 0.0189065 , 0.0184532 , 100.00, 1
+# target 50% 0.00525
+# target 75% 0.00725
+# target 99% 0.0186345
+# target 99.9% 0.0188793
+Code 200 : 19 (63.3 %)
+Code 503 : 11 (36.7 %)
+Response Header Sizes : count 30 avg 145.73333 +/- 110.9 min 0 max 231 sum 4372
+Response Body/Total Sizes : count 30 avg 507.13333 +/- 220.8 min 217 max 676 sum 15214
+All done 30 calls (plus 0 warmup) 5.336 ms avg, 422.2 qps
+```
+
+Now you start to see the expected circuit breaking behavior. Only 63.3% of the requests succeeded and the rest were trapped by circuit breaking:
+```
+Code 200 : 19 (63.3 %)
+Code 503 : 11 (36.7 %)
+```
+3. Query the istio-proxy stats to see more:
+
+```
+ kubectl exec -it $FORTIO_POD  -c istio-proxy  -- sh -c 'curl localhost:15000/stats' | grep httpbin | grep pending
+```
+
+```
+cluster.outbound|80||httpbin.springistio.svc.cluster.local.upstream_rq_pending_active: 0
+cluster.outbound|80||httpbin.springistio.svc.cluster.local.upstream_rq_pending_failure_eject: 0
+cluster.outbound|80||httpbin.springistio.svc.cluster.local.upstream_rq_pending_overflow: 12
+cluster.outbound|80||httpbin.springistio.svc.cluster.local.upstream_rq_pending_total: 39
+```
+
+You can see 12 for the upstream_rq_pending_overflow value which means 12 calls so far have been flagged for circuit breaking.
+
 
 ### Cleanup
+Remove the rules and delete the httpbin sample app
 ```
-istioctl delete destinationrule details-breaker
+kubectl delete destinationrule httpbin
+kubectl delete deploy httpbin fortio-deploy
+kubectl delete svc httpbin
 ```
-
 
 
 
@@ -469,29 +662,21 @@ NAME            DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE
 istio-citadel   1         1         1            1           3h
 ```
 #### Verify Service Configuration 
-NOTE: Although this method works on Istio 0.8, it will be deprecated in the upcoming releases.
-Check installation mode. If mutual TLS is enabled by default (e.g istio-demo-auth.yaml was used when installing Istio), you can expect to see uncommented authPolicy: MUTUAL_TLS in the configmap
+Check installation mode. If mutual TLS is enabled you can expect to see mode "ISTIO_MUTUAL"
 ```
-kubectl get configmap istio -o yaml -n istio-system | grep authPolicy | head -1
-```
-Istio mutual TLS authentication is enabled if the line **authPolicy: MUTUAL_TLS** is uncommented (doesn’t have a **#**).
-
-Check destination rule. Starting with Istio 0.8, destination rule’s traffic policy is used to configure client side to use (or not use) mutual TLS.
-
-```
-kubectl get destinationrules.networking.istio.io --all-namespaces -o yaml
+kubectl get destinationrules.networking.istio.io --all-namespaces -o yaml | grep -i mutual
 ```
 
 #### Enable mTLS on all services
-NOTE: Starting Istio 0.8, enabling mTLS is controlled through the authentication policy.
+NOTE 1: Starting Istio 0.8, enabling mTLS is controlled through the authentication policy. NOTE 2: A policy with no targets (i.e., apply to all targets in namespace) must be named default
 
-To enable mTLS on all services deployed in the default namesapce,
+To enable mTLS on all services deployed in the default namespace:
 ```
 cat <<EOF | istioctl create -f -
 apiVersion: authentication.istio.io/v1alpha1
 kind: Policy
 metadata:
-  name: mtls-enable-default
+  name: default
   namespace: default
 spec:
   peers:
@@ -502,9 +687,15 @@ EOF
 #### Testing the authentication setup
 We are going to install a sample application into the cluster and try and access the services directly.
 
+We need to clone the repository first though. 
+
+```
+git clone https://github.com/jruels/fun-istio.git 
+```
+
 1. Switch to the sample app folder
 ```
-cd mtlstest
+cd fun-istio/labs/07-istio1/mtlstest
 ```
 2. Deploy the app to Kubernetes
 ```
@@ -529,7 +720,16 @@ reviews       ClusterIP   10.59.250.46    <none>        9080/TCP   12m
 NOTE: The cluster IP for the **details** app. This app is running on port 9080
 
 4. Access the mtltest pod (replace with actual pod name)
+
 ```
+kubectl get pods 
+```
+```
+NAME                              READY     STATUS    RESTARTS   AGE
+details-v1-747d659bb6-2d6rc       2/2       Running   0          56m
+mtlstest-6b69c569c6-gb6pj         2/2       Running   0          1m
+```
+
 kubectl exec -it <mtlstest-bbf7bd6c-9rmwn> /bin/bash
 ```
 
