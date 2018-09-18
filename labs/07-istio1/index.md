@@ -724,16 +724,18 @@ NOTE: The cluster IP for the **details** app. This app is running on port 9080
 ```
 kubectl get pods 
 ```
+
 ```
 NAME                              READY     STATUS    RESTARTS   AGE
 details-v1-747d659bb6-2d6rc       2/2       Running   0          56m
 mtlstest-6b69c569c6-gb6pj         2/2       Running   0          1m
 ```
-
+```
 kubectl exec -it <mtlstest-bbf7bd6c-9rmwn> /bin/bash
 ```
 
 5. Run cURL to access to the details app
+
 ```
 curl -k -v https://details:9080/details/0
 ```
