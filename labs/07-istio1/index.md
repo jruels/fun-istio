@@ -834,8 +834,14 @@ Istio Role-Based Access Control (RBAC) provides namespace-level, service-level, 
 * Flexibility through custom properties support in roles and role-bindings.
 
 In this part of the lab, we will create a service role  that gives read only access to a certain set of services. First we enable RBAC.
+
+Change directories back to Instio install directory
 ```
-istioctl create -f samples/bookinfo/kube/istio-rbac-enable.yaml
+cd ~/istio-*
+```
+
+```
+istioctl create -f samples/bookinfo/platform/kube/istio-rbac-enable.yaml
 ```
 OUTPUT:
 ```
@@ -860,10 +866,10 @@ spec:
       values: ["productpage", "details", "reviews", "ratings", "mtlstest"]
 ```
 
-This service role allows only the GET operation on all the services listed in `values`. Deploy the rule from the class lab directory
+This service role allows only the GET operation on all the services listed in `values`.
 
 ```
-istioctl create -f rbac/istio-rbac-namespace.yaml
+istioctl create -f samples/bookinfo/platform/kube/istio-rbac-namespace.yaml
 ```
 
 OUTPUT:
@@ -917,8 +923,8 @@ The create/POST failed. You can learn more about Istio RBAC [here](https://istio
 Delete RBAC resources
 
 ```
-istioctl delete -f rbac/istio-rbac-namespace.yaml
-istioctl delete -f samples/bookinfo/kube/istio-rbac-enable.yaml
+istioctl delete -f samples/bookinfo/platform/kube/istio-rbac-enable.yaml
+istioctl delete -f samples/bookinfo/platform/kube/istio-rbac-namespace.yaml
 ```
 
 ### Testing Istio JWT Policy <a name="jwt"/>
