@@ -1016,7 +1016,13 @@ There are two critical pieces here:
 * The _Issuer_, every JWT token must match the issuer specified here
 * The _jwks_url_, this is an endpoint to where [JSON Web Key](https://tools.ietf.org/html/rfc7517) based public keys are hosted. Here is an [example](https://www.googleapis.com/oauth2/v2/certs) from Google. These public keys are used to verify the JWT.
 
+Change to the class page lab directory
+```
+cd ~/fun-istio/labs/07-istio1/
+```
+
 Now, apply the policy
+
 
 ```
 kubectl apply -f jwttest/details-jwt.yaml
@@ -1054,6 +1060,7 @@ OUTPUT:
 Origin authentication failed.
 ```
 This is expected, we did not pass a JWT token.
+
 
 ## Monitoring <a name="monitoring"/>
 
@@ -1096,11 +1103,7 @@ ctrl + c
 
 This task shows you how to setup and use the Istio Dashboard to monitor mesh traffic. As part of this task, you will install the Grafana Istio addon and use the web-based interface for viewing service mesh traffic data.
 
-First we install the Grafana addon:
-
-```kubectl apply -f install/kubernetes/addons/grafana.yaml```
-
-Grafana will be used to visualize the data prometheus.
+Grafana will be used to visualize the prometheus data.
 
 Configure port forwarding:
 
@@ -1111,9 +1114,11 @@ If running on local machine open browser to `http://localhost:8080`, or if runni
 
 Load the Bookinfo application again (http://$GATEWAY_URL/productpage).
 
-Select a Istio Dashboard in the top left from the list, and you will now see something similar to the following:
+Select an Istio Dashboard in the top left from the list, and you will now see something similar to the following:
 
  ![monitoring](media/monitoring-1.png)
+
+Click through the different Istio Dashboards and play around with the sources. Explore all of the available metrics/graphs that come out of the box with Istio!
 
  To stop the port forward, 
 ```
@@ -1130,7 +1135,7 @@ ctrl + c
 
 ## Generating a Service Graph <a name="generate-graph"/>
  
-This task shows you how to generate a graph of services within an Istio mesh. As part of this task, you will install the ServiceGraph addon and use the web-based interface for viewing service graph of the service mesh.
+This task shows you how to generate a graph of services within an Istio mesh. As part of this task, you will use the web-based interface for viewing service graph of the service mesh.
 
 Configure port forwarding:
 
