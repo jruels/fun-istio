@@ -386,8 +386,8 @@ spec:
   http:
   - match:
     - headers:
-        cookie:
-          regex: "^(.*?;)?(user=jason)(;.*)?$"
+        end-user:
+          exact: jason
     route:
     - destination:
         host: reviews
