@@ -8,15 +8,13 @@ This site contains the content and labs for the Fundamentals of Istio course.
 
 ### Labs
 
-Lab 1: [Install Docker locally](labs/01-docker-daemon)
+[Lab Setup](labs/001-setup/)
 
-Lab 2: [Docker build](labs/02-docker-build/)   
+Lab 1: [Docker build](labs/02-docker-build/)   
 
-Lab 3: [Deploy Microservices with Compose](labs/03-compose) 
+Lab 2: [Deploy Kubernetes Pods](labs/04-pods)
 
-Lab 4: [Deploy Kubernetes Pods](labs/04-pods)
-
-Lab 5: [Deploy Multi-container application](labs/05-multi)
+Lab 3: [Deploy Multi-container application](labs/05-multi)
 
 ## Day 2
 
