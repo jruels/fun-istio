@@ -1,7 +1,7 @@
 # Deploy multi-tier application
-This lab shows you how to build and deploy a simple, multi-tier web application using Kubernetes. 
+This lab shows you how to build, deploy and manage a simple, multi-tier web application using Kubernetes. 
 
-We will be deploying the guestbook demo application which is made up of Redis master, Redis slave, and guestbook frontend. 
+We will be deploying the guestbook demo application which is made up of Redis master, Redis slave, and guestbook frontend.  After successfully deploying we will update the application and then rollback to the previous version.
 
 ## Start up Redis Master 
 The guestbook application uses Redis to store its data. It writes data to a Redis master instance and reads data from multiple Redis slave instances.
@@ -103,9 +103,10 @@ redis-slave    ClusterIP   10.98.54.128   <none>        6379/TCP   35s
 The guestbook application has a web frontend serving the HTTP requests written in PHP. It is configured to connect to the `redis-master` Service for write requests and the `redis-slave` service for Read requests.
 
 ## Create the Guestbook Frontend Deployment
-Apply the YAML file
+Apply the YAML file using the `--record` flag.
+NOTE: We are using the `--record` flag to keep a history of the deployment, which enables us to rollback.
 ```
-kubectl apply -f manifests/frontend-deployment.yaml
+kubectl apply --record -f manifests/frontend-deployment.yaml
 ```
 
 Now let’s verify they are running 
@@ -139,15 +140,18 @@ kubectl get services
 You should see something like this 
 ```
 NAME           TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)        AGE
-frontend       NodePort    10.107.73.47   103.21.23.45  80:31495/TCP   34s
+frontend       NodePort    10.107.73.47   <none>        80:31495/TCP   34s
 kubernetes     ClusterIP   10.96.0.1      <none>        443/TCP        44m
 redis-master   ClusterIP   10.107.62.78   <none>        6379/TCP       11m
 redis-slave    ClusterIP   10.98.54.128   <none>        6379/TCP       6m
 ```
 
 ### Viewing the Frontend Service 
-To load the front end in a browser visit localhost on port `8081`
+To load the front end in a browser visit your Master servers IP and use the port from previous command. 
 
+In the example above we can see that `frontend` Service is running on `NodePort` 31495 so I would visit the following in a web browser 
+
+`http://<masterIP>:31495`
 
 ## Scale Web Frontend 
 Scaling up or down is easy because your servers are defined as a Service that uses a Deployment controller.
@@ -172,6 +176,110 @@ Now check to see if Pods are being destroyed
 kubectl get pods -l app=guestbook -l tier=frontend
 ```
 
+## Update frontend image
+
+Confirm the version of the image you are using
+```
+kubectl describe deployment frontend |grep Image
+```
+
+You should see `v4`
+```
+Image:      gcr.io/google-samples/gb-frontend:v4
+```
+
+Now we are going to update our YAML file 
+```
+vim manifests/frontend-deployment.yaml
+```
+
+Replace `v4` with `v5` so it looks like below:
+```
+..snip
+- name: php-redis
+        image: gcr.io/google-samples/gb-frontend:v5
+```
+
+Now save the file and deploy the new version 
+```
+kubectl apply --record -f  manifests/frontend-deployment.yaml
+```
+
+Run the following to see that the Pods are being updated
+```
+kubectl get pods -l tier=frontend
+```
+
+You should see some Pods being terminated and new Pods being created
+```
+NAME                            READY     STATUS              RESTARTS   AGE
+frontend-56d4ff456b-jpdhk       0/1       ContainerCreating   0          0s
+frontend-56d4ff456b-pv2m2       1/1       Running             0          9s
+frontend-56d4ff456b-rbz5p       1/1       Running             0          19s
+frontend-56f7975f44-fgxk8       1/1       Running             0          7m
+frontend-56f7975f44-j76lw       1/1       Terminating         0          7m
+redis-master-6b464554c8-jdxhk   1/1       Running             0          11m
+redis-slave-b58dc4644-crbfs     1/1       Running             0          10m
+redis-slave-b58dc4644-htwkm     1/1       Running             0          10m
+```
+
+Great!  Now you can confirm it updated to `v5`
+```
+kubectl describe deployment frontend | grep Image
+```
+
+Now that you're successfully running `v5`  update the YAML file to `v6` and deploy it.  Do not forget to use `--record`
+
+After the update has completed confirm it is running `v6`
+```
+kubectl describe deployment frontend | grep Image
+```
+
+## Rollback deployment 
+Now let's say that something went wrong during our update, and we need to rollback to a previous version of our application. 
+
+As long as we used the `--record` option when deploying this is easy. 
+
+Run the following to check the rollout history 
+```
+kubectl rollout history deployment frontend
+```
+
+```
+REVISION  CHANGE-CAUSE
+1         kubectl apply --record=true --filename=manifests/frontend-deployment.yaml
+2         kubectl apply --record=true --filename=manifests/frontend-deployment.yaml
+3         kubectl apply --record=true --filename=manifests/frontend-deployment.yaml
+```
+
+To see the changes made for each revision we can run the following, replacing `--revision` with the one you want to know more about
+```
+kubectl rollout history deployment frontend --revision=2
+```
+
+Now to rollback to our previous revision we can run: 
+```
+kubectl rollout undo deployment frontend
+```
+
+If we needed to choose a version previous to our last we can specify it:
+```
+kubectl rollout undo deployment frontend --to-revision=1
+```
+
+What does the rollout history look like now? 
+```
+kubectl rollout history deployment frontend
+```
+
+Remember when you rolled back the previous version it changed the order of deployment revisions. 
+
+Use the following command to see details about each deployment revision, replacing `<number>` with the actual revision number.
+```
+kubectl rollout history deployment/frontend --revision=<number>
+```
+
+## Cleanup
 To clean up everything run 
 ```
 kubectl delete deployment -l app=redis
@@ -184,3 +292,5 @@ Confirm everything was deleted
 ```
 kubectl get pods
 ```
+
+## Lab Complete
