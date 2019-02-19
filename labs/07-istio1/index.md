@@ -56,16 +56,50 @@ Add the istioctl client to your PATH:
 
 Let&#39;s now install Istio&#39;s core components. We will install the Istio Auth components which enable [**mutual TLS authentication**](https://istio.io/docs/concepts/security/mutual-tls.html) between sidecars:
 
+In Istio 1.0 the recommeded installation tool is Helm. The following steps walk through installation of the Helm client, and using Helm to install Istio. 
 
-Install Istio’s Custom Resource Definitions via kubectl apply, and wait a few seconds for the CRDs to be committed in the kube-apiserver:
+
+## Install Helm 
+
 ```
-kubectl apply -f install/kubernetes/helm/istio/templates/crds.yaml
+wget https://storage.googleapis.com/kubernetes-helm/helm-v2.10.0-linux-amd64.tar.gz
+tar xvf helm-v2.10.0-linux-amd64.tar.gz
+cp linux-amd64/helm . 
 ```
 
-To install Istio run: 
+Now that Helm is installed we need to install the backend 
+
+Create tiller service account
 ```
-kubectl apply -f install/kubernetes/istio-demo-auth.yaml
+kubectl create serviceaccount tiller --namespace kube-system
 ```
+
+Grant tiller cluster admin role 
+```
+kubectl create clusterrolebinding tiller-admin-binding --clusterrole=cluster-admin --serviceaccount=kube-system:tiller
+```
+
+Initialize Helm to install tiller in your cluster 
+```
+./helm init --service-account=tiller
+./helm update
+```
+
+Finally we can install Istio 
+
+```
+./helm install install/kubernetes/helm/istio \
+    --name istio \
+    --namespace istio-system \
+    --set global.mtls.enabled=true \
+    --set grafana.enabled=true \
+    --set servicegraph.enabled=true \
+    --set tracing.enabled=true \
+    --set kiali.enabled=true
+```
+
+This command will appear to hang for a couple minutes, but it is actually installing everything in the background. Once the installation is complete you will see output showing all of the components installed. 
+
 
 This creates the istio-system namespace along with the required RBAC permissions, and deploys Istio-Pilot, Istio-Mixer, Istio-Ingress, Istio-Egress, and Istio-CA (Certificate Authority).
 
@@ -247,7 +281,7 @@ EOF
 
 Now that it&#39;s deployed, let&#39;s see the BookInfo application in action.
 
-If running on Public cloud run the following to determine ingress IP and port:
+If running on Google Container Engine run the following to determine ingress IP and port:
 
 ```
 kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 
@@ -615,7 +649,7 @@ kubectl delete svc httpbin
 ### Testing Istio mutual TLS authentication <a name="mutual"/>
 Through this task, you will learn how to:
 * Verify the Istio mutual TLS Authentication setup
-* Manually test the authentication   
+* Manually test the authentication  
 
 #### Verifying Istio CA
 Verify the cluster-level CA is running:
@@ -688,6 +722,7 @@ reviews       ClusterIP   10.59.250.46    <none>        9080/TCP   12m
 NOTE: The cluster IP for the **details** app. This app is running on port 9080
 
 4. Access the mtlstest pod 
+
 ```
 kubectl exec -it $(kubectl get pod | grep mtlstest | awk '{ print $1 }') /bin/bash
 ```
@@ -725,14 +760,15 @@ kubectl get secret istio.default -o jsonpath='{.data.cert-chain\.pem}' | base64 
 kubectl get secret istio.default -o jsonpath='{.data.key\.pem}' | base64 --decode > key.pem
 ```
 
-2. Copy the files to the mtlstest POD
+2. Copy the files to the mtlstest POD (replace with actual pod name)
 ```
 kubectl cp root-cert.pem $(kubectl get pod | grep mtlstest | awk '{ print $1 }'):/tmp -c mtlstest
 kubectl cp cert-chain.pem $(kubectl get pod | grep mtlstest | awk '{ print $1 }'):/tmp -c mtlstest
 kubectl cp key.pem $(kubectl get pod | grep mtlstest | awk '{ print $1 }'):/tmp -c mtlstest
 ```
 
-3. Start a bash session to the mtlstest POD
+3. Start a bash to the mtlstest POD
+
 ```
 kubectl exec -it $(kubectl get pod | grep mtlstest | awk '{ print $1 }') /bin/bash
 ```
@@ -782,7 +818,7 @@ Istio Role-Based Access Control (RBAC) provides namespace-level, service-level, 
 * Service-to-service and endUser-to-Service authorization.
 * Flexibility through custom properties support in roles and role-bindings.
 
-In this part of the lab, we will create a service role that gives read only access to a certain set of services. First we enable RBAC.
+In this part of the lab, we will create a service role  that gives read only access to a certain set of services. First we enable RBAC.
 
 Change directories back to Istio install directory
 ```
@@ -790,7 +826,7 @@ cd ~/istio-*
 ```
 
 ```
-istioctl create -f samples/bookinfo/platform/kube/rbac/rbac-config-ON.yaml
+kubectl apply -f samples/bookinfo/platform/kube/rbac/rbac-config-ON.yaml
 ```
 OUTPUT:
 ```
@@ -799,13 +835,26 @@ Created config rbac/istio-system/handler at revision 197481
 Created config rule/istio-system/rbaccheck at revision 197482
 ```
 
-After enabling RBAC all requests are denied by default. 
-
-To confirm this you can reload the $GATEWAY_URL/productpage
-
-Now let's enable `GET` request access
+Now, review the service role and service role binding we'll be creating
 ```
-istioctl create -f samples/bookinfo/platform/kube/rbac/namespace-policy.yaml
+apiVersion: "config.istio.io/v1alpha2"
+kind: ServiceRole
+metadata:
+  name: service-viewer
+  namespace: default
+spec:
+  rules:
+  - services: ["*"]
+    methods: ["GET"]
+    constraints:
+    - key: "app"
+      values: ["productpage", "details", "reviews", "ratings", "mtlstest"]
+```
+
+This service role allows only the GET operation on all the services listed in `values`.
+
+```
+kubectl apply -f  samples/bookinfo/platform/kube/rbac/namespace-policy.yaml
 ```
 
 OUTPUT:
@@ -859,8 +908,8 @@ The create/POST failed. You can learn more about Istio RBAC [here](https://istio
 Delete RBAC resources
 
 ```
-istioctl delete -f samples/bookinfo/platform/kube/rbac/rbac-config-ON.yaml
-istioctl delete -f samples/bookinfo/platform/kube/rbac/namespace-policy.yaml
+istioctl delete -f samples/bookinfo/platform/kube/istio-rbac-enable.yaml
+istioctl delete -f samples/bookinfo/platform/kube/istio-rbac-namespace.yaml
 ```
 
 ### Testing Istio JWT Policy <a name="jwt"/>
@@ -1004,22 +1053,12 @@ This is expected, we did not pass a JWT token.
 
 Istio-enabled applications can be configured to collect trace spans using, for instance, the popular [Jaeger](https://www.jaegertracing.io/docs/) distributed tracing system. Distributed tracing lets you see the flow of requests a user makes through your system, and Istio&#39;s model allows this regardless of what language/framework/platform you use to build your application.
 
-Configure port forwarding if running `kubectl` from local machine:
+Configure port forwarding:
 
 ```kubectl port-forward -n istio-system $(kubectl get pod -n istio-system -l app=jaeger -o jsonpath='{.items[0].metadata.name}') 8080:16686 &```
 
-If running on local machine open browser to `http://localhost:8080`
-
-If running on Public cloud you must edit the service and change it to `type:NodePort` 
-
-```
-kubectl edit svc tracing 
-```
-After saving the updated service run the following to find out the port
-```
-kubectl get svc 
-```
-You will see a port that is similar to 30800 which is used to access the service.
+If running on local machine open browser to `http://localhost:8080`, or if running on Google Cloud open your browser by clicking on "Preview on port 8080":
+![Istio](media/preview.png)
 
 Load the Bookinfo application again (http://$GATEWAY_URL/productpage).
 
