@@ -56,13 +56,15 @@ Add the istioctl client to your PATH:
 
 Let&#39;s now install Istio&#39;s core components. We will install the Istio Auth components which enable [**mutual TLS authentication**](https://istio.io/docs/concepts/security/mutual-tls.html) between sidecars:
 
-To install Istio we run: 
+
+Install Istio’s Custom Resource Definitions via kubectl apply, and wait a few seconds for the CRDs to be committed in the kube-apiserver:
 ```
-curl https://raw.githubusercontent.com/leecalcote/istio-service-mesh-workshop/master/deployment_files/istio-1.0.4/istio-solarwinds-1.0.4.yaml > istio.yaml
+kubectl apply -f install/kubernetes/helm/istio/templates/crds.yaml
 ```
 
+To install Istio run: 
 ```
-kubectl apply -f istio.yaml
+kubectl apply -f install/kubernetes/istio-demo-auth.yaml
 ```
 
 This creates the istio-system namespace along with the required RBAC permissions, and deploys Istio-Pilot, Istio-Mixer, Istio-Ingress, Istio-Egress, and Istio-CA (Certificate Authority).
