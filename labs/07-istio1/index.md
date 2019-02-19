@@ -62,9 +62,7 @@ In Istio 1.0 the recommeded installation tool is Helm. The following steps walk 
 ## Install Helm 
 
 ```
-wget https://storage.googleapis.com/kubernetes-helm/helm-v2.10.0-linux-amd64.tar.gz
-tar xvf helm-v2.10.0-linux-amd64.tar.gz
-cp linux-amd64/helm . 
+wget https://raw.githubusercontent.com/helm/helm/master/scripts/get -O - | bash
 ```
 
 Now that Helm is installed we need to install the backend 
