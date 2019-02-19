@@ -225,57 +225,24 @@ With Envoy sidecars injected along side each service, the architecture will look
 
 ![bookinfoistio](media/bookinfo-istio.png)
 
-Finally, expose the service
 
+Now that the Bookinfo services are up and running, you need to make the application accessible from outside of your Kubernetes cluster, e.g., from a browser. An Istio Gateway is used for this purpose.
+
+Define the ingress gateway for the application:
 ```
-cat <<EOF | kubectl apply -f -
-apiVersion: networking.istio.io/v1alpha3
-kind: VirtualService
-metadata:
-  name: bookinfo
-  namespace: default
-spec:
-  gateways:
-  - bookinfo-gateway
-  hosts:
-  - '*'
-  http:
-  - match:
-    - uri:
-        exact: /productpage
-    - uri:
-        exact: /login
-    - uri:
-        exact: /logout
-    - uri:
-        prefix: /api/v1/products
-    route:
-    - destination:
-        host: productpage
-        port:
-          number: 9080
-EOF
+kubectl apply -f samples/bookinfo/networking/bookinfo-gateway.yaml
 ```
 
+Confirm the gateway has been created:
 ```
-cat <<EOF | kubectl apply -f -
-apiVersion: networking.istio.io/v1alpha3
-kind: Gateway
-metadata:
-  name: bookinfo-gateway
-spec:
-  selector:
-    istio: ingressgateway # use istio default controller
-  servers:
-  - port:
-      number: 80
-      name: http
-      protocol: HTTP
-    hosts:
-    - "*"
-EOF
+kubectl get gateway
 ```
 
+output:
+```
+NAME               AGE
+bookinfo-gateway   32s
+```
 
 ## Use the application <a name="use-the-application"/>
 
