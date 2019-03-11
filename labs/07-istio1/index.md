@@ -62,9 +62,7 @@ In Istio 1.0 the recommeded installation tool is Helm. The following steps walk 
 ## Install Helm 
 
 ```
-wget https://storage.googleapis.com/kubernetes-helm/helm-v2.10.0-linux-amd64.tar.gz
-tar xvf helm-v2.10.0-linux-amd64.tar.gz
-cp linux-amd64/helm . 
+wget https://raw.githubusercontent.com/helm/helm/master/scripts/get -O - | bash
 ```
 
 Now that Helm is installed we need to install the backend 
@@ -225,76 +223,41 @@ With Envoy sidecars injected along side each service, the architecture will look
 
 ![bookinfoistio](media/bookinfo-istio.png)
 
-Finally, expose the service
 
+Now that the Bookinfo services are up and running, you need to make the application accessible from outside of your Kubernetes cluster, e.g., from a browser. An Istio Gateway is used for this purpose.
+
+Define the ingress gateway for the application:
 ```
-cat <<EOF | kubectl apply -f -
-apiVersion: networking.istio.io/v1alpha3
-kind: VirtualService
-metadata:
-  name: bookinfo
-  namespace: default
-spec:
-  gateways:
-  - bookinfo-gateway
-  hosts:
-  - '*'
-  http:
-  - match:
-    - uri:
-        exact: /productpage
-    - uri:
-        exact: /login
-    - uri:
-        exact: /logout
-    - uri:
-        prefix: /api/v1/products
-    route:
-    - destination:
-        host: productpage
-        port:
-          number: 9080
-EOF
+kubectl apply -f samples/bookinfo/networking/bookinfo-gateway.yaml
 ```
 
+Confirm the gateway has been created:
 ```
-cat <<EOF | kubectl apply -f -
-apiVersion: networking.istio.io/v1alpha3
-kind: Gateway
-metadata:
-  name: bookinfo-gateway
-spec:
-  selector:
-    istio: ingressgateway # use istio default controller
-  servers:
-  - port:
-      number: 80
-      name: http
-      protocol: HTTP
-    hosts:
-    - "*"
-EOF
+kubectl get gateway
 ```
 
+output:
+```
+NAME               AGE
+bookinfo-gateway   32s
+```
 
 ## Use the application <a name="use-the-application"/>
 
 Now that it&#39;s deployed, let&#39;s see the BookInfo application in action.
 
-If running on Google Container Engine run the following to determine ingress IP and port:
+If running on Google Cloud set some variables for service IP and Port:
+```
+export INGRESS_HOST=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+export INGRESS_PORT=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.spec.ports[?(@.name=="http2")].port}')
+export SECURE_INGRESS_PORT=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.spec.ports[?(@.name=="https")].port}')
+```
 
-```
-kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 
-```
 
-OUTPUT:
-```
-35.xxx.xxx.xxx
-```
 
 Based on this information (Address), set the GATEWAY\_URL environment variable:
 
-```export GATEWAY_URL=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}')```
+```export GATEWAY_URL=$INGRESS_HOST:$INGRESS_PORT```
 
 If running on `localhost` set the `GATEWAY_URL` with the following:
 
@@ -402,7 +365,7 @@ Look at the virtual service you&#39;ve just created :
 
 ```istioctl get virtualservices reviews -o yaml```
 
-We now have a way to route some requests to use the reviews:v2 service. Can you guess how? (Hint: no passwords are needed) See how the page behaviour changes if you are logged in as no-one and &#39;jason&#39;.
+We now have a way to route some requests to use the reviews:v2 service. Can you guess how? (Hint: no passwords are needed) See how the page behavior changes if you are logged in as no-one and &#39;jason&#39;.
 
 You can read the [documentation page](https://istio.io/docs/tasks/traffic-management/request-routing.html) for further details on Istio&#39;s request routing.
 
@@ -437,7 +400,7 @@ kubectl apply -f samples/bookinfo/networking/virtual-service-ratings-test-delay.
 ```
 You should see confirmation the routing rule was created. Allow several seconds to account for rule propagation delay to all pods.
 
-##### Observe application behavior
+#### Observe application behavior
 
 Log in as user “jason”. If the application’s front page was set to correctly handle delays, we expect it to load within approximately 7 seconds. To see the web page response times, open the Developer Tools menu in IE, Chrome or Firefox (typically, key combination _Ctrl+Shift+I or Alt+Cmd+I_), tab Network, and reload the _productpage_ web page.
 
@@ -649,7 +612,8 @@ kubectl delete svc httpbin
 ### Testing Istio mutual TLS authentication <a name="mutual"/>
 Through this task, you will learn how to:
 * Verify the Istio mutual TLS Authentication setup
-* Manually test the authentication
+* Manually test the authentication  
+
 #### Verifying Istio CA
 Verify the cluster-level CA is running:
 
@@ -668,7 +632,8 @@ kubectl get destinationrules.networking.istio.io --all-namespaces -o yaml | grep
 ```
 
 #### Enable mTLS on all services
-NOTE 1: Starting Istio 0.8, enabling mTLS is controlled through the authentication policy. NOTE 2: A policy with no targets (i.e., apply to all targets in namespace) must be named default
+NOTE 1: Starting Istio 0.8, enabling mTLS is controlled through the authentication policy.   
+NOTE 2: A policy with no targets (i.e., apply to all targets in namespace) must be named default
 
 To enable mTLS on all services deployed in the default namespace:
 ```
@@ -719,19 +684,10 @@ reviews       ClusterIP   10.59.250.46    <none>        9080/TCP   12m
 ```
 NOTE: The cluster IP for the **details** app. This app is running on port 9080
 
-4. Access the mtltest pod (replace with actual pod name)
+4. Access the mtlstest pod 
 
 ```
-kubectl get pods 
-```
-
-```
-NAME                              READY     STATUS    RESTARTS   AGE
-details-v1-747d659bb6-2d6rc       2/2       Running   0          56m
-mtlstest-6b69c569c6-gb6pj         2/2       Running   0          1m
-```
-```
-kubectl exec -it <mtlstest-bbf7bd6c-9rmwn> /bin/bash
+kubectl exec -it $(kubectl get pod | grep mtlstest | awk '{ print $1 }') /bin/bash
 ```
 
 5. Run cURL to access to the details app
@@ -755,7 +711,7 @@ OUTPUT:
 * Closing connection 0
 curl: (35) error:1408F10B:SSL routines:ssl3_get_record:wrong version number
 ```
-**NOTE**: If security (mTLS) was **NOT** enabled on the services, you would have see the output (status 200)
+**NOTE**: If security (mTLS) was **NOT** enabled on the services, you would have seen the output (status 200)
 #### Accessing the Service
 
 We are now going to access the service with the appropriate keys and certs.
@@ -769,25 +725,15 @@ kubectl get secret istio.default -o jsonpath='{.data.key\.pem}' | base64 --decod
 
 2. Copy the files to the mtlstest POD (replace with actual pod name)
 ```
-kubectl cp root-cert.pem mtlstest-854c4c9b85-gwr82:/tmp -c mtlstest
-kubectl cp cert-chain.pem mtlstest-854c4c9b85-gwr82:/tmp -c mtlstest
-kubectl cp key.pem mtlstest-854c4c9b85-gwr82:/tmp -c mtlstest
+kubectl cp root-cert.pem $(kubectl get pod | grep mtlstest | awk '{ print $1 }'):/tmp -c mtlstest
+kubectl cp cert-chain.pem $(kubectl get pod | grep mtlstest | awk '{ print $1 }'):/tmp -c mtlstest
+kubectl cp key.pem $(kubectl get pod | grep mtlstest | awk '{ print $1 }'):/tmp -c mtlstest
 ```
 
 3. Start a bash to the mtlstest POD
-```
-kubectl get pods
-```
-OUTPUT:
-```
-NAME                              READY     STATUS    RESTARTS   AGE
-details-v1-845458947b-4xt2j       2/2       Running   0          5h
-mtlstest-bbf7bd6c-gfpjk           2/2       Running   0          45m
-productpage-v1-54d4776d48-z8xxv   2/2       Running   0          5h
-```
 
 ```
-kubectl exec -it mtlstest-854c4c9b85-gwr82 /bin/bash
+kubectl exec -it $(kubectl get pod | grep mtlstest | awk '{ print $1 }') /bin/bash
 ```
 
 4. Move the PEM files to the appropriate folder (/etc/certs - which is the default folder)
@@ -837,13 +783,13 @@ Istio Role-Based Access Control (RBAC) provides namespace-level, service-level, 
 
 In this part of the lab, we will create a service role  that gives read only access to a certain set of services. First we enable RBAC.
 
-Change directories back to Instio install directory
+Change directories back to Istio install directory
 ```
 cd ~/istio-*
 ```
 
 ```
-istioctl create -f samples/bookinfo/platform/kube/istio-rbac-enable.yaml
+kubectl apply -f samples/bookinfo/platform/kube/rbac/rbac-config-ON.yaml
 ```
 OUTPUT:
 ```
@@ -871,7 +817,7 @@ spec:
 This service role allows only the GET operation on all the services listed in `values`.
 
 ```
-istioctl create -f samples/bookinfo/platform/kube/istio-rbac-namespace.yaml
+kubectl apply -f  samples/bookinfo/platform/kube/rbac/namespace-policy.yaml
 ```
 
 OUTPUT:
@@ -880,9 +826,9 @@ Created config service-role/default/service-viewer at revision 196402
 Created config service-role-binding/default/bind-service-viewer at revision 196403
 ```
 
-Access the mtlstest POD (replace with actual pod name)
+Access the mtlstest POD
 ```
-kubectl exec -it mtlstest-854c4c9b85-gwr82 /bin/bash
+kubectl exec -it $(kubectl get pod | grep mtlstest | awk '{ print $1 }') /bin/bash
 ```
 
 Try to access the application
