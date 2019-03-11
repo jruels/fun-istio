@@ -80,7 +80,7 @@ kubectl create clusterrolebinding tiller-admin-binding --clusterrole=cluster-adm
 Initialize Helm to install tiller in your cluster 
 ```
 helm init --service-account=tiller
-helm update
+helm repo update
 ```
 
 Finally we can install Istio 
@@ -92,8 +92,7 @@ helm install install/kubernetes/helm/istio \
     --set global.mtls.enabled=true \
     --set grafana.enabled=true \
     --set servicegraph.enabled=true \
-    --set tracing.enabled=true \
-    --set kiali.enabled=true
+    --set tracing.enabled=true
 ```
 
 This command will appear to hang for a couple minutes, but it is actually installing everything in the background. Once the installation is complete you will see output showing all of the components installed. 
