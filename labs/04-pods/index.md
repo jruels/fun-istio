@@ -134,6 +134,9 @@ apt-get update && apt-get install -y curl
 
 After `curl` is installed load the default web page and confirm it says something like:
 ```
+curl localhost
+```
+```
 Hello from the debian container
 ```
 
