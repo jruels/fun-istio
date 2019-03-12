@@ -384,7 +384,6 @@ Now let's cleanup our routing rules.
 
 ```
 kubectl delete -f samples/bookinfo/networking/virtual-service-all-v1.yaml -n default
-kubectl delete -f samples/bookinfo/networking/destination-rule-all-mtls.yaml
 ```
 
 ## Traffic mirroring (shadow traffic) 
@@ -401,7 +400,7 @@ In this task, you will first force all traffic to v1 of a test service. Then, yo
 
 Start by deploying two versions of the httpbin service that have access logging enabled:
 
-*httpbin-v1*:
+**httpbin-v1**:
 ```
 cat <<EOF | istioctl kube-inject -f - | kubectl create -f -
 apiVersion: extensions/v1beta1
@@ -425,8 +424,9 @@ spec:
         - containerPort: 8080
 EOF
 ```
-*httpbin-v2*:
-``
+
+**httpbin-v2**:
+```
 cat <<EOF | istioctl kube-inject -f - | kubectl create -f -
 apiVersion: extensions/v1beta1
 kind: Deployment
@@ -447,8 +447,8 @@ spec:
         command: ["gunicorn", "--access-logfile", "-", "-b", "0.0.0.0:8080", "httpbin:app"]
         ports:
         - containerPort: 8080
-EOF`
-``
+EOF
+```
 
 Now create a Kubernetes service: 
 ```
