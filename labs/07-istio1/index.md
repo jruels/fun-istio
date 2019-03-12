@@ -370,11 +370,281 @@ You can read the [documentation page](https://istio.io/docs/tasks/traffic-manage
 
 Once the v2 version has been tested to our satisfaction, we could use Istio to send traffic from all users to v2, optionally in a gradual fashion.
 
-For now, let&#39;s clean up the routing rules:
+Now send 80 perfect to v1 and 20 perfect to v2. 
+```
+kubectl apply -f samples/bookinfo/networking/virtual-service-reviews-80-20.yaml
+```
+To confirm you can go refresh the page in your browser and determine that majority of the time you are hitting v1, but then about 20% of the time you hit v2.
+
+In this task you migrated traffic from an old to new version of the reviews service using Istio’s weighted routing feature. Note that this is very different than doing version migration using the deployment features of container orchestration platforms, which use instance scaling to manage the traffic.
+
+With Istio, you can allow the two versions of the reviews service to scale up and down independently, without affecting the traffic distribution between them.
+
+Now let's cleanup our routing rules.
 
 ```
 kubectl delete -f samples/bookinfo/networking/virtual-service-all-v1.yaml -n default
-kubectl delete -f samples/bookinfo/networking/destination-rule-all-mtls.yaml -n default
+kubectl delete -f samples/bookinfo/networking/destination-rule-all-mtls.yaml
+```
+
+## Traffic mirroring (shadow traffic) 
+
+A deployment brings new code to production but it takes no production traffic. Once in the production environment, service teams are free to run smoke tests, integration tests, etc without impacting any users. A service team should feel free to deploy as frequently as it wishes.
+
+A release brings live traffic to a deployment but may require signoff from “the business stakeholders”. Ideally, bringing traffic to a deployment can be done in a controlled manner to reduce risk. For example, we may want to bring internal-user traffic to the deployment first. Or we may want to bring a small fraction, say 1%, of traffic to the deployment. If any of these release rollout strategies (internal, non-paying, 1% traffic, etc) exhibit undesirable behavior (thus the need for strong observability) then we can rollback.
+
+### Dark traffic 
+One strategy we can use to reduce risk for our releases, before we even expose to any type of user, is to shadow traffic live traffic to our deployment. With traffic shadowing, we can take a fraction of traffic and route it to our new deployment and observe how it behaves. We can do things like test for errors, exceptions, performance, and result parity. 
+With Istio, we can do this kind of traffic control by Mirroring traffic from one service to another. Let’s take a look at an example.
+
+In this task, you will first force all traffic to v1 of a test service. Then, you will apply a rule to mirror a portion of traffic to v2.
+
+Start by deploying two versions of the httpbin service that have access logging enabled:
+
+*httpbin-v1*:
+```
+cat <<EOF | istioctl kube-inject -f - | kubectl create -f -
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: httpbin-v1
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: httpbin
+        version: v1
+    spec:
+      containers:
+      - image: docker.io/kennethreitz/httpbin
+        imagePullPolicy: IfNotPresent
+        name: httpbin
+        command: ["gunicorn", "--access-logfile", "-", "-b", "0.0.0.0:8080", "httpbin:app"]
+        ports:
+        - containerPort: 8080
+EOF
+```
+*httpbin-v2*:
+``
+cat <<EOF | istioctl kube-inject -f - | kubectl create -f -
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: httpbin-v2
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: httpbin
+        version: v2
+    spec:
+      containers:
+      - image: docker.io/kennethreitz/httpbin
+        imagePullPolicy: IfNotPresent
+        name: httpbin
+        command: ["gunicorn", "--access-logfile", "-", "-b", "0.0.0.0:8080", "httpbin:app"]
+        ports:
+        - containerPort: 8080
+EOF`
+``
+
+Now create a Kubernetes service: 
+```
+cat <<EOF | kubectl create -f -
+apiVersion: v1
+kind: Service
+metadata:
+  name: httpbin
+  labels:
+    app: httpbin
+spec:
+  ports:
+  - name: http
+    port: 8080
+  selector:
+    app: httpbin
+EOF
+```
+
+Start up the sleep service so you can run curl to provide load: 
+```
+cat <<EOF | istioctl kube-inject -f - | kubectl create -f -
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: sleep
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: sleep
+    spec:
+      containers:
+      - name: sleep
+        image: tutum/curl
+        command: ["/bin/sleep","infinity"]
+        imagePullPolicy: IfNotPresent
+EOF
+```
+
+By default Kubernetes load balances across both versions of the httpbin service. In this step, you will change that behavior so that all traffic goes to v1.
+
+Enable mutual TLS and reate a default route rule to route all traffic to v1 of the service:
+
+```
+kubectl apply -f samples/bookinfo/networking/destination-rule-all-mtls.yaml
+```
+
+```
+cat <<EOF | kubectl apply -f -
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: httpbin
+spec:
+  hosts:
+    - httpbin
+  http:
+  - route:
+    - destination:
+        host: httpbin
+        subset: v1
+      weight: 100
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: httpbin
+spec:
+  host: httpbin
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL
+  subsets:
+  - name: v1
+    labels:
+      version: v1
+  - name: v2
+    labels:
+      version: v2
+EOF
+```
+Now all traffic goes to the httpbin v1 service.
+
+Send some traffic to the service:
+```
+export SLEEP_POD=$(kubectl get pod -l app=sleep -o jsonpath={.items..metadata.name})
+kubectl exec -it $SLEEP_POD -c sleep -- sh -c 'curl  http://httpbin:8080/headers' | python -m json.tool
+```
+
+Output should be similar to: 
+```
+{
+  "headers": {
+    "Accept": "*/*",
+    "Content-Length": "0",
+    "Host": "httpbin:8080",
+    "User-Agent": "curl/7.35.0",
+    "X-B3-Sampled": "1",
+    "X-B3-Spanid": "eca3d7ed8f2e6a0a",
+    "X-B3-Traceid": "eca3d7ed8f2e6a0a",
+    "X-Ot-Span-Context": "eca3d7ed8f2e6a0a;eca3d7ed8f2e6a0a;0000000000000000"
+  }
+}
+```
+
+Check the logs for each version: 
+V1: 
+```
+export V1_POD=$(kubectl get pod -l app=httpbin,version=v1 -o jsonpath={.items..metadata.name})
+kubectl logs $V1_POD -c httpbin
+```
+
+Output: 
+```
+127.0.0.1 - - [12/Mar/2019:03:27:56 +0000] "GET /headers HTTP/1.1" 200 241 "-" "curl/7.35.0"
+```
+
+V2: 
+```
+export V2_POD=$(kubectl get pod -l app=httpbin,version=v2 -o jsonpath={.items..metadata.name})
+kubectl logs $V2_POD -c httpbin
+```
+
+Output: 
+```
+<none>
+```
+
+Mirroring traffic to v2  
+Change the route rule to mirror traffic to v2:
+```
+cat <<EOF | kubectl apply -f -
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: httpbin
+spec:
+  hosts:
+    - httpbin
+  http:
+  - route:
+    - destination:
+        host: httpbin
+        subset: v1
+      weight: 100
+    mirror:
+      host: httpbin
+      subset: v2
+EOF
+```
+This route rule sends 100% of the traffic to v1. The last section specifies to mirror to the httpbin-v2 service. When traffic gets mirrored, the requests are sent to the mirrored service with their Host/Authority headers appended with -shadow. For example, cluster-1 becomes cluster-1-shadow.
+
+Also, it is important to note that these requests are mirrored as “fire and forget”, which means that the responses are discarded.
+
+Send in traffic:
+```
+kubectl exec -it $SLEEP_POD -c sleep -- sh -c 'curl  http://httpbin:8080/headers' | python -m json.tool
+```
+
+Now, you should see access logging for both v1 and v2. The access logs created in v2 are the mirrored requests that are actually going to v1.
+
+```
+kubectl logs $V1_POD -c httpbin
+```
+
+Output
+```
+127.0.0.1 - - [12/Mar/2019:03:27:56 +0000] "GET /headers HTTP/1.1" 200 241 "-" "curl/7.35.0"
+127.0.0.1 - - [12/Mar/2019:03:31:42 +0000] "GET /headers HTTP/1.1" 200 241 "-" "curl/7.35.0"
+```
+
+```
+kubectl logs $V2_POD -c httpbin
+```
+
+Output:
+```
+127.0.0.1 - - [12/Mar/2019:03:31:42 +0000] "GET /headers HTTP/1.1" 200 281 "-" "curl/7.35.0"
+```
+
+The above task configured Istio to mirror all traffic sent to `httpbin-v1` to `httpbin-v2` so that we can confirm it responds as expected.  Once we have confirmed it is handling connections correctly we can direct all traffic to v2. 
+
+
+Now let's cleanup: 
+```
+kubectl delete -f samples/bookinfo/networking/destination-rule-all-mtls.yaml
+kubectl delete virtualservice httpbin
+kubectl delete destinationrule httpbin
+```
+
+Shutdown the httpbin service and client 
+```
+kubectl delete deploy httpbin-v1 httpbin-v2 sleep
+kubectl delete svc httpbin
 ```
 
 ## Fault Injection <a name="fault-injection"/>
