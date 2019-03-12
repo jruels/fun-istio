@@ -370,7 +370,7 @@ You can read the [documentation page](https://istio.io/docs/tasks/traffic-manage
 
 Once the v2 version has been tested to our satisfaction, we could use Istio to send traffic from all users to v2, optionally in a gradual fashion.
 
-Now send 80 perfect to v1 and 20 perfect to v2. 
+Now send 80% to v1 and 20% to v2. 
 ```
 kubectl apply -f samples/bookinfo/networking/virtual-service-reviews-80-20.yaml
 ```
