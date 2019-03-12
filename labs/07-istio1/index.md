@@ -383,7 +383,7 @@ With Istio, you can allow the two versions of the reviews service to scale up an
 Now let's cleanup our routing rules.
 
 ```
-kubectl delete -f samples/bookinfo/networking/virtual-service-all-v1.yaml -n default
+kubectl delete --ignore-not-found=true -f samples/bookinfo/networking/virtual-service-all-v1.yaml -n default
 ```
 
 ## Traffic mirroring (shadow traffic) 
@@ -632,15 +632,15 @@ The above task configured Istio to mirror all traffic sent to `httpbin-v1` to `h
 
 Now let's cleanup: 
 ```
-kubectl delete -f samples/bookinfo/networking/destination-rule-all-mtls.yaml
-kubectl delete virtualservice httpbin
-kubectl delete destinationrule httpbin
+kubectl delete --ignore-not-found=true -f samples/bookinfo/networking/destination-rule-all-mtls.yaml
+kubectl delete --ignore-not-found=true virtualservice httpbin
+kubectl delete --ignore-not-found=true destinationrule httpbin
 ```
 
 Shutdown the httpbin service and client 
 ```
-kubectl delete deploy httpbin-v1 httpbin-v2 sleep
-kubectl delete svc httpbin
+kubectl delete --ignore-not-found=true deploy httpbin-v1 httpbin-v2 sleep
+kubectl delete --ignore-not-found=true svc httpbin
 ```
 
 ## Fault Injection <a name="fault-injection"/>
@@ -693,7 +693,7 @@ Login as user “jason”. If the rule propagated successfully to all pods, you 
 Clean up the fault rules with the command:
 
 ```
-kubectl delete -f samples/bookinfo/networking/virtual-service-all-v1.yaml
+kubectl delete --ignore-not-found=true -f samples/bookinfo/networking/virtual-service-all-v1.yaml
 ```
 ## Circuit Breaker <a name="circuit"/>
 This task demonstrates the circuit-breaking capability for resilient applications. Circuit breaking allows developers to write applications that limit the impact of failures, latency spikes, and other undesirable effects of network peculiarities.
@@ -866,9 +866,9 @@ You can see 12 for the upstream_rq_pending_overflow value which means 12 calls s
 ### Cleanup
 Remove the rules and delete the httpbin sample app
 ```
-kubectl delete destinationrule httpbin
-kubectl delete deploy httpbin fortio-deploy
-kubectl delete svc httpbin
+kubectl delete --ignore-not-found=true destinationrule httpbin
+kubectl delete --ignore-not-found=true deploy httpbin fortio-deploy
+kubectl delete --ignore-not-found=true svc httpbin
 ```
 
 
@@ -975,6 +975,12 @@ The output shows:
 * AUTHN POLICY: the name and namespace of the authentication policy. If the policy is the mesh-wide policy, namespace is blank, as in this case: default/
 
 * DESTINATION RULE: the name and namespace of the destination rule used.
+
+First we need to create the `bar` and `foo` namespaces used in the following `DestinationRule`
+```
+kubectl create ns bar
+kubectl create ns foo
+```
 
 To illustrate the case when there are conflicts, add a service-specific destination rule for httpbin with incorrect TLS mode:
 ```
@@ -1194,8 +1200,8 @@ cd ~/istio-*
 Delete RBAC resources
 
 ```
-kubectl delete -f samples/bookinfo/platform/kube/rbac/namespace-policy.yaml
-kubectl delete -f samples/bookinfo/platform/kube/rbac/rbac-config-ON.yaml
+kubectl delete --ignore-not-found=true -f samples/bookinfo/platform/kube/rbac/namespace-policy.yaml
+kubectl delete --ignore-not-found=true -f samples/bookinfo/platform/kube/rbac/rbac-config-ON.yaml
 ```
 
 
@@ -1340,7 +1346,22 @@ This is expected, we did not pass a JWT token.
 
 Istio-enabled applications can be configured to collect trace spans using, for instance, the popular [Jaeger](https://www.jaegertracing.io/docs/) distributed tracing system. Distributed tracing lets you see the flow of requests a user makes through your system, and Istio&#39;s model allows this regardless of what language/framework/platform you use to build your application.
 
-Configure port forwarding:
+If running in an environment that uses `NodePort` run the following to expose the service. 
+```
+kubectl -n istio-system edit svc jaeger-query
+```
+
+Change `ClusterIP` to NodePort` under the `spec` section:
+```
+type: NodePort
+```
+
+Save the file and then check the services to see what the `NodePort` is. 
+```
+jaeger-query             NodePort       10.108.145.196   <none>        16686:32480/TCP
+```
+
+Configure port forwarding if on public cloud:
 
 ```kubectl port-forward -n istio-system $(kubectl get pod -n istio-system -l app=jaeger -o jsonpath='{.items[0].metadata.name}') 8080:16686 &```
 
@@ -1377,7 +1398,23 @@ This task shows you how to setup and use the Istio Dashboard to monitor mesh tra
 
 Grafana will be used to visualize the prometheus data.
 
-Configure port forwarding:
+If running in an environment that uses `NodePort` run the following to expose the service. 
+```
+kubectl -n istio-system edit svc grafana
+```
+
+Change `ClusterIP` to NodePort` under the `spec` section:
+```
+type: NodePort
+```
+
+Save the file and then check the services to see what the `NodePort` is. 
+```
+grafana   NodePort   10.105.23.236   <none>        3000:30024/TCP
+```
+
+
+Configure port forwarding if on public cloud:
 
 ```kubectl -n istio-system port-forward $(kubectl -n istio-system get pod -l app=grafana -o jsonpath='{.items[0].metadata.name}') 8080:3000 &```
 
@@ -1408,6 +1445,22 @@ ctrl + c
 ## Generating a Service Graph <a name="generate-graph"/>
  
 This task shows you how to generate a graph of services within an Istio mesh. As part of this task, you will use the web-based interface for viewing service graph of the service mesh.
+
+If running in an environment that uses `NodePort` run the following to expose the service.
+```
+kubectl -n istio-system edit svc servicegraph
+```
+
+Change `ClusterIP` to NodePort` under the `spec` section:
+```
+type: NodePort
+```
+
+Save the file and then check the services to see what the `NodePort` is.
+```
+servicegraph   NodePort   10.111.251.194   <none>        8088:30688/TCP
+```
+
 
 Configure port forwarding:
 
@@ -1441,7 +1494,7 @@ ctrl + c
 Here&#39;s how to uninstall Istio.
 
 ```
-kubectl delete -f samples/bookinfo/kube/bookinfo.yaml 
+kubectl delete --ignore-not-found=true -f samples/bookinfo/kube/bookinfo.yaml 
 ```
 OUTPUT:
 ```
@@ -1457,6 +1510,8 @@ service    'productpage' deleted
 deployment 'productpage-v1' deleted
 ```
  
-```kubectl delete -f install/kubernetes/istio-auth.yaml```
+```
+kubectl delete -f install/kubernetes/istio-auth.yaml
+```
 
 
