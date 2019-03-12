@@ -896,146 +896,175 @@ Check installation mode. If mutual TLS is enabled you can expect to see mode "IS
 kubectl get destinationrules.networking.istio.io --all-namespaces -o yaml | grep -i mutual
 ```
 
-#### Enable mTLS on all services
+#### Deploy sleep and httpbin
+```
+kubectl apply -f <(istioctl kube-inject -f samples/httpbin/httpbin.yaml)
+kubectl apply -f <(istioctl kube-inject -f samples/sleep/sleep.yaml)
+```
+
+#### Verify keys and certificates available
+Istio automatically installs necessary keys and certificates for mutual TLS authentication in all sidecar containers. Run command below to confirm key and certificate files exist under /etc/certs:
+```
+kubectl exec $(kubectl get pod -l app=httpbin -o jsonpath={.items..metadata.name}) -c istio-proxy -- ls /etc/certs
+```
+
+Output: 
+```
+cert-chain.pem
+key.pem
+root-cert.pem
+```
+
+`cert-chain.pem` is Envoy’s cert that needs to be presented to the other side. `key.pem` is Envoy’s private key paired with Envoy’s cert in `cert-chain.pem`. `root-cert.pem` is the root cert to verify the peer’s cert. In this example, we only have one Citadel in a cluster, so all Envoys have the same `root-cert.pem`.
+
+Use the openssl tool to check if certificate is valid (current time should be in between Not Before and Not After)
+```
+kubectl exec $(kubectl get pod -l app=httpbin -o jsonpath={.items..metadata.name}) -c istio-proxy -- cat /etc/certs/cert-chain.pem | openssl x509 -text -noout  | grep Validity -A 2
+```
+
+Output: 
+```
+Validity
+        Not Before: May 17 23:02:11 2018 GMT
+        Not After : Aug 15 23:02:11 2018 GMT
+```
+
+You can also check the identity of the client certificate:
+```
+kubectl exec $(kubectl get pod -l app=httpbin -o jsonpath={.items..metadata.name}) -c istio-proxy -- cat /etc/certs/cert-chain.pem | openssl x509 -text -noout  | grep 'Subject Alternative Name' -A 1
+```
+
+Output: 
+```
+        X509v3 Subject Alternative Name:
+            URI:spiffe://cluster.local/ns/default/sa/default
+```
+
+
+
+#### Verify mTLS configuration 
 NOTE 1: Starting Istio 0.8, enabling mTLS is controlled through the authentication policy.   
 NOTE 2: A policy with no targets (i.e., apply to all targets in namespace) must be named default
 
-To enable mTLS on all services deployed in the default namespace:
+You can use the istioctl tool to check the effective mutual TLS settings. To identify the authentication policy and destination rules used for the httpbin.default.svc.cluster.local configuration and the mode employed, use the following command:
 ```
-cat <<EOF | istioctl create -f -
-apiVersion: authentication.istio.io/v1alpha1
-kind: Policy
+istioctl authn tls-check httpbin.default.svc.cluster.local
+```
+
+In the following example output you can see that:
+
+* Mutual TLS is consistently setup for httpbin.default.svc.cluster.local on port 8080.
+* Istio uses the mesh-wide default authentication policy.
+* Istio has the default destination rule in the default namespace.
+
+Output: 
+```
+HOST:PORT                                  STATUS     SERVER     CLIENT     AUTHN POLICY        DESTINATION RULE
+httpbin.default.svc.cluster.local:8080     OK         mTLS       mTLS       default/            default/default
+```
+You may see a `Stderr` this is a known issue and does not cause any issues 
+
+The output shows:
+
+* STATUS: whether the TLS settings are consistent between the server, the httpbin service in this case, and the client or clients making calls to httpbin.
+
+* SERVER: the mode used on the server.
+
+* CLIENT: the mode used on the client or clients.
+
+* AUTHN POLICY: the name and namespace of the authentication policy. If the policy is the mesh-wide policy, namespace is blank, as in this case: default/
+
+* DESTINATION RULE: the name and namespace of the destination rule used.
+
+To illustrate the case when there are conflicts, add a service-specific destination rule for httpbin with incorrect TLS mode:
+```
+cat <<EOF | istioctl create -n bar -f -
+apiVersion: "networking.istio.io/v1alpha3"
+kind: "DestinationRule"
 metadata:
-  name: default
-  namespace: default
+  name: "bad-rule"
 spec:
-  peers:
-  - mtls:
+  host: "httpbin.default.svc.cluster.local"
+  trafficPolicy:
+    tls:
+      mode: DISABLE
 EOF
 ```
 
-#### Testing the authentication setup
-We are going to install a sample application into the cluster and try and access the services directly.
-
-We need to clone the repository first though. 
-
+Run the same istioctl command as above, you now see the status is CONFLICT, as client is in HTTP mode while server is in mTLS.
 ```
-git clone https://github.com/jruels/fun-istio.git 
+istioctl authn tls-check httpbin.default.svc.cluster.local
 ```
 
-1. Switch to the sample app folder
+Output: 
 ```
-cd fun-istio/labs/07-istio1/mtlstest
-```
-2. Deploy the app to Kubernetes
-```
-kubectl create -f <(istioctl kube-inject -f mtlstest.yaml) --validate=true --dry-run=false
+HOST:PORT                                  STATUS       SERVER     CLIENT     AUTHN POLICY        DESTINATION RULE
+httpbin.default.svc.cluster.local:8080     CONFLICT     mTLS       HTTP       default/            bad-rule/default
 ```
 
-3. Verify the application was deployed successfully
+You can also confirm that requests from sleep to httpbin are now failing:
 ```
-kubectl get svc
-```
-
-OUTPUT:
-```
-NAME          TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)    AGE
-details       ClusterIP   10.59.254.1     <none>        9080/TCP   12m
-kubernetes    ClusterIP   10.59.240.1     <none>        443/TCP    18m
-mtlstest      ClusterIP   10.59.253.170   <none>        8080/TCP   7m
-productpage   ClusterIP   10.59.251.133   <none>        9080/TCP   12m
-ratings       ClusterIP   10.59.251.105   <none>        9080/TCP   12m
-reviews       ClusterIP   10.59.250.46    <none>        9080/TCP   12m
-```
-NOTE: The cluster IP for the **details** app. This app is running on port 9080
-
-4. Access the mtlstest pod 
-
-```
-kubectl exec -it $(kubectl get pod | grep mtlstest | awk '{ print $1 }') /bin/bash
+kubectl exec $(kubectl get pod -l app=sleep -o jsonpath={.items..metadata.name}) -c sleep -- curl httpbin:8000/headers -o /dev/null -s -w '%{http_code}\n'
 ```
 
-5. Run cURL to access to the details app
-
+Output: 
 ```
-curl -k -v https://details:9080/details/0
-```
-
-OUTPUT:
-```
-*   Trying 10.35.255.72...
-* TCP_NODELAY set
-* Connected to details (10.35.255.72) port 9080 (#0)
-* ALPN, offering h2
-* ALPN, offering http/1.1
-* successfully set certificate verify locations:
-*   CAfile: /etc/ssl/certs/ca-certificates.crt
-  CApath: /etc/ssl/certs
-* TLSv1.2 (OUT), TLS handshake, Client hello (1):
-* error:1408F10B:SSL routines:ssl3_get_record:wrong version number
-* Closing connection 0
-curl: (35) error:1408F10B:SSL routines:ssl3_get_record:wrong version number
-```
-**NOTE**: If security (mTLS) was **NOT** enabled on the services, you would have seen the output (status 200)
-#### Accessing the Service
-
-We are now going to access the service with the appropriate keys and certs.
-
-1. Get the CA Root Cert, Certificate and Key from Kubernetes secrets
-```
-kubectl get secret istio.default -o jsonpath='{.data.root-cert\.pem}' | base64 --decode > root-cert.pem
-kubectl get secret istio.default -o jsonpath='{.data.cert-chain\.pem}' | base64 --decode > cert-chain.pem
-kubectl get secret istio.default -o jsonpath='{.data.key\.pem}' | base64 --decode > key.pem
+503
 ```
 
-2. Copy the files to the mtlstest POD (replace with actual pod name)
+Before you continue, remove the bad destination rule to make mutual TLS work again with the following command:
 ```
-kubectl cp root-cert.pem $(kubectl get pod | grep mtlstest | awk '{ print $1 }'):/tmp -c mtlstest
-kubectl cp cert-chain.pem $(kubectl get pod | grep mtlstest | awk '{ print $1 }'):/tmp -c mtlstest
-kubectl cp key.pem $(kubectl get pod | grep mtlstest | awk '{ print $1 }'):/tmp -c mtlstest
+kubectl delete destinationrule --ignore-not-found=true bad-rule
 ```
 
-3. Start a bash to the mtlstest POD
+#### Verify requests 
+This task shows how a server with mutual TLS enabled responses to requests that are:
 
+* In plain-text
+* With TLS but without client certificate
+* With TLS with a client certificate
+
+To perform this task, you want to by-pass client proxy. A simplest way to do so is to issue request from istio-proxy container.
+
+Confirm that plain-text requests fail as TLS is required to talk to httpbin with the following command:
 ```
-kubectl exec -it $(kubectl get pod | grep mtlstest | awk '{ print $1 }') /bin/bash
+kubectl exec $(kubectl get pod -l app=sleep -o jsonpath={.items..metadata.name}) -c istio-proxy -- curl http://httpbin:8000/headers -o /dev/null -s -w '%{http_code}\n'
 ```
 
-4. Move the PEM files to the appropriate folder (/etc/certs - which is the default folder)
+Output: 
 ```
-mkdir /etc/certs
-```
-```
-mv /tmp/*.pem /etc/certs/
+000
+command terminated with exit code 56
 ```
 
-5. Access the application
+Note that the exit code is 56. The code translates to a failure to receive network data.
+
+Confirm TLS requests without client certificate also fail:
 ```
-curl -v http://details:9080/details/0
+kubectl exec $(kubectl get pod -l app=sleep -o jsonpath={.items..metadata.name}) -c istio-proxy -- curl https://httpbin:8000/headers -o /dev/null -s -w '%{http_code}\n' -k
 ```
-OUTPUT:
+
+Output: 
 ```
-*   Trying 10.35.255.72...
-* TCP_NODELAY set
-* Connected to details (10.35.255.72) port 9080 (#0)
-> GET /details/0 HTTP/1.1
-> Host: details:9080
-> User-Agent: curl/7.58.0
-> Accept: */*
->
-< HTTP/1.1 200 OK
-< content-type: application/json
-< server: envoy
-< date: Mon, 25 Jun 2018 03:50:17 GMT
-< content-length: 178
-< x-envoy-upstream-service-time: 19
-<
-* Connection #0 to host details left intact
-{"id":0,"author":"William Shakespeare","year":1595,"type":"paperback","pages":200,"publisher":"PublisherA","language":"English","ISBN-10":"1234567890","ISBN-13":"123-1234567890"}root@mtlstest-854c4c9b85-gwr82:/tmp
+000
+command terminated with exit code 35
 ```
-**NOTE**: 
-1. You didn't have to specify _https_ when accessing the service.
-2. Envoy automatically established mTLS between the consumer (mtlstest) and the provider (details) 
+
+This time, exit code is 35, which corresponds to a problem occurred somewhere in the SSL/TLS handshake.
+
+Confirm TLS request with client certificate succeed:
+```
+kubectl exec $(kubectl get pod -l app=sleep -o jsonpath={.items..metadata.name}) -c istio-proxy -- curl https://httpbin:8000/headers -o /dev/null -s -w '%{http_code}\n' --key /etc/certs/key.pem --cert /etc/certs/cert-chain.pem --cacert /etc/certs/root-cert.pem -k
+```
+
+
+Istio uses Kubernetes service accounts as service identity, which offers stronger security than service name. Thus, the certificates Istio uses do not have service names, which is the information that `curl` needs to verify server identity. To prevent the `curl` client from aborting, we use `curl` with the `-k` option. The option prevents the client from verifying and looking for the server name, for example, `httpbin.default.svc.cluster.local` in the certificate provided by the server.
+
+Cleanup: 
+```
+kubectl delete --ignore-not-found=true -f samples/httpbin/httpbin.yaml
+kubectl delete --ignore-not-found=true -f samples/sleep/sleep.yaml
+```
 
 ### Further Reading
 Learn more about the design principles behind Istio’s automatic mTLS authentication between all services in this [blog](https://istio.io/blog/istio-auth-for-microservices.html)
@@ -1046,22 +1075,28 @@ Istio Role-Based Access Control (RBAC) provides namespace-level, service-level, 
 * Service-to-service and endUser-to-Service authorization.
 * Flexibility through custom properties support in roles and role-bindings.
 
-In this part of the lab, we will create a service role  that gives read only access to a certain set of services. First we enable RBAC.
+In this part of the lab, we will create a service role that gives read only access to a certain set of services. First we enable RBAC.
 
-Change directories back to Istio install directory
+Change directories to Istio install directory
 ```
 cd ~/istio-*
 ```
 
+Confirm you can load the `productpage` in a browser. 
+
+
+Now enable RBAC 
 ```
 kubectl apply -f samples/bookinfo/platform/kube/rbac/rbac-config-ON.yaml
 ```
 OUTPUT:
 ```
-Created config authorization/istio-system/requestcontext at revision 197480
-Created config rbac/istio-system/handler at revision 197481
-Created config rule/istio-system/rbaccheck at revision 197482
+rbacconfig.rbac.istio.io/default created
 ```
+
+Point your browser at the Bookinfo productpage (http://$GATEWAY_URL/productpage). Now you should see "RBAC: access denied". This is because Istio authorization is “deny by default”, which means that you need to explicitly define access control policy to grant access to any service.
+
+
 
 Now, review the service role and service role binding we'll be creating
 ```
@@ -1079,7 +1114,12 @@ spec:
       values: ["productpage", "details", "reviews", "ratings", "mtlstest"]
 ```
 
-This service role allows only the GET operation on all the services listed in `values`.
+
+In our Bookinfo sample, the productpage, reviews, details, ratings services are deployed in the default namespace. The Istio components like istio-ingressgateway service are deployed in the istio-system namespace. We can define a policy that any service in the default namespace that has the app label set to one of the values of productpage, details, reviews, or ratings is accessible by services in the same namespace (i.e., default) and services in the istio-system namespace.
+
+Using Istio authorization, you can easily setup namespace-level access control by specifying all (or a collection of) services in a namespace are accessible by services from another namespace.
+
+Run the following command to create a namespace-level access control policy:
 
 ```
 kubectl apply -f  samples/bookinfo/platform/kube/rbac/namespace-policy.yaml
@@ -1089,6 +1129,19 @@ OUTPUT:
 ```
 Created config service-role/default/service-viewer at revision 196402
 Created config service-role-binding/default/bind-service-viewer at revision 196403
+```
+
+The policy does the following:
+
+* Creates a ServiceRole service-viewer which allows read access to any service in the default namespace that has the app label set to one of the values productpage, details, reviews, or ratings. Note that there is a constraint specifying that the services must have one of the listed app labels.
+
+* Creates a ServiceRoleBinding that assign the service-viewer role to all services in the istio-system and default namespaces.
+
+
+Deploy test mtlstest Pod 
+```
+cd ~/fun-istio/labs/07-istio1/mtlstest
+kubectl create -f <(istioctl kube-inject -f mtlstest.yaml) --validate=true --dry-run=false
 ```
 
 Access the mtlstest POD
@@ -1131,14 +1184,20 @@ Note: Unnecessary use of -X or --request, POST is already inferred.
 PERMISSION_DENIED:handler.rbac.istio-system:RBAC: permission denied.
 ```
 
-The create/POST failed. You can learn more about Istio RBAC [here](https://istio.io/docs/concepts/security/rbac/)
+The create/POST failed due to our RBAC policy. You can learn more about Istio RBAC [here](https://istio.io/docs/concepts/security/rbac/)
+
+Change back to the istio directory
+```
+cd ~/istio-*
+```
 
 Delete RBAC resources
 
 ```
-istioctl delete -f samples/bookinfo/platform/kube/istio-rbac-enable.yaml
-istioctl delete -f samples/bookinfo/platform/kube/istio-rbac-namespace.yaml
+kubectl delete -f samples/bookinfo/platform/kube/rbac/namespace-policy.yaml
+kubectl delete -f samples/bookinfo/platform/kube/rbac/rbac-config-ON.yaml
 ```
+
 
 ### Testing Istio JWT Policy <a name="jwt"/>
 Through this task, you will learn how to enable JWT validation on specific services in the mesh.
