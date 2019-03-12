@@ -492,11 +492,7 @@ EOF
 
 By default Kubernetes load balances across both versions of the httpbin service. In this step, you will change that behavior so that all traffic goes to v1.
 
-Enable mutual TLS and reate a default route rule to route all traffic to v1 of the service:
-
-```
-kubectl apply -f samples/bookinfo/networking/destination-rule-all-mtls.yaml
-```
+Create a default route rule to route all traffic to v1 of the service:
 
 ```
 cat <<EOF | kubectl apply -f -
