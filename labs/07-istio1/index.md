@@ -364,7 +364,7 @@ spec:
 
 Look at the virtual service you&#39;ve just created :
 
-```istioctl get virtualservices reviews -o yaml```
+```kubectl get virtualservices reviews -o yaml```
 
 We now have a way to route some requests to use the reviews:v2 service. Can you guess how? (Hint: no passwords are needed) See how the page behavior changes if you are logged in as no-one and &#39;jason&#39;.
 
