@@ -245,18 +245,22 @@ bookinfo-gateway   32s
 
 Now that it&#39;s deployed, let&#39;s see the BookInfo application in action.
 
-Set some variables for service IP and Port:
+
+If running on Google Container Engine run the following to determine ingress IP and port:
+
 ```
-export INGRESS_HOST=$(curl -s icanhazip.com)
-export INGRESS_PORT=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.spec.ports[?(@.name=="http2")].nodePort}')
-export SECURE_INGRESS_PORT=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.spec.ports[?(@.name=="https")].nodePort}')
+kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 
 ```
 
+OUTPUT:
+```
+35.xxx.xxx.xxx
+```
 
+Based on this information (Address), set the GATEWAY_URL environment variable:
 
-Based on this information (Address), set the GATEWAY\_URL environment variable:
+`export GATEWAY_URL=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}')`
 
-```export GATEWAY_URL=$INGRESS_HOST:$INGRESS_PORT```
 
 If running on `localhost` set the `GATEWAY_URL` with the following:
 
