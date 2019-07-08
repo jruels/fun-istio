@@ -31,6 +31,33 @@ In this lab, you will learn how to install and configure Istio, an open source f
 
 You add Istio support to services by deploying a special Envoy sidecar proxy to each of your application&#39;s pods in your environment that intercepts all network communication between microservices, configured and managed using Istio's control plane functionality.
 
+## Spin up a Kubernetes cluster <a name="setup k8s"/>
+Before we can install Istio we need to create a Kubernetes cluster using GCP's cloud console. 
+1. Click the shell icon on the top right of the browser.
+2. In the new console set the project (replacing with actual project id)
+
+```
+gcloud config set project <YOUR_PROJECT_ID>
+```
+3. In the new shell enable Kubernetes Engine API
+
+```
+gcloud services enable container.googleapis.com
+```
+4. Spin up Kubernetes cluster
+
+```
+gcloud beta container clusters create istio-demo \
+    --zone=us-central1-f \
+    --machine-type=n1-standard-2 \
+    --num-nodes=4
+```
+
+After this command completes you can confirm the cluster is running:
+```
+kubectl get pods --all-namespaces
+```
+
 ## Installing Istio <a name="installing-istio"/>
 
 Now, let&#39;s install Istio. Istio is installed in its own Kubernetes istio-system namespace, and can manage microservices from all other namespaces. The installation includes Istio core components, tools, and samples.
@@ -56,7 +83,7 @@ Add the istioctl client to your PATH:
 
 Let&#39;s now install Istio&#39;s core components. We will install the Istio Auth components which enable [**mutual TLS authentication**](https://istio.io/docs/concepts/security/mutual-tls.html) between sidecars:
 
-In Istio 1.0 the recommeded installation tool is Helm. The following steps walk through installation of the Helm client, and using Helm to install Istio. 
+In Istio 1.0+ the recommeded installation tool is Helm. The following steps walk through installation of the Helm client, and using Helm to install Istio. 
 
 
 ## Install Helm 
