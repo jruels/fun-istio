@@ -752,7 +752,7 @@ FORTIO_POD=$(kubectl get pod | grep fortio | awk '{ print $1 }')
 
 Log in to the client pod and use the fortio tool to call httpbin. Pass in -curl to indicate that you just want to make one call:
 ```
-kubectl exec -it $FORTIO_POD  -c fortio /usr/local/bin/fortio -- load -curl  http://httpbin:8000/get
+kubectl exec -it $FORTIO_POD  -c fortio /usr/bin/fortio -- load -curl  http://httpbin:8000/get
 ```
 
 You can see the request succeeded! Now, it’s time to break something.
