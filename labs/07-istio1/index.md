@@ -273,7 +273,7 @@ bookinfo-gateway   32s
 Now that it&#39;s deployed, let&#39;s see the BookInfo application in action.
 
 
-If running on Google Container Engine run the following to determine ingress IP and port:
+If running on Google Kubernetes Engine run the following to determine ingress IP and port:
 
 ```
 kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 
