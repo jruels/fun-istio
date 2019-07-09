@@ -100,7 +100,7 @@ spec:
 
 This Pod contains two containers, one is a web server running `nginx` and the other is a fetcher process to populate an HTML file for `nginx` to display. 
 
-Go ahead na deploy it. 
+Go ahead an deploy it. 
 ```
 kubectl apply -f two-containers.yml
 ```
