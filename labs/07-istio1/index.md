@@ -762,7 +762,7 @@ In the DestinationRule settings, you specified maxConnections: 1 and http1MaxPen
 
 1. Call the service with two concurrent connections (-c 2) and send 20 requests (-n 20):
 ```
-kubectl exec -it $FORTIO_POD  -c fortio /usr/local/bin/fortio -- load -c 2 -qps 0 -n 20 -loglevel Warning http://httpbin:8000/get
+kubectl exec -it $FORTIO_POD  -c fortio /usr/bin/fortio -- load -c 2 -qps 0 -n 20 -loglevel Warning http://httpbin:8000/get
 ```
 
 ```
@@ -801,7 +801,7 @@ Code 503 : 1 (5.0 %)
 
 2. Bring the number of concurrent connections up to 3:
 ```
-kubectl exec -it $FORTIO_POD  -c fortio /usr/local/bin/fortio -- load -c 3 -qps 0 -n 20 -loglevel Warning http://httpbin:8000/get
+kubectl exec -it $FORTIO_POD  -c fortio /usr/bin/fortio -- load -c 3 -qps 0 -n 20 -loglevel Warning http://httpbin:8000/get
 ```
 
 ```
