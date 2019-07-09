@@ -8,7 +8,7 @@ This site contains the content and labs for the Fundamentals of Istio course.
 
 ### Labs
 
-[Lab Setup](labs/001-setup/)
+[Lab Setup](labs/001-setup-gcp/)
 
 Lab 1: [Deploy Kubernetes Pods](labs/04-pods)
 
