@@ -31,33 +31,6 @@ In this lab, you will learn how to install and configure Istio, an open source f
 
 You add Istio support to services by deploying a special Envoy sidecar proxy to each of your application&#39;s pods in your environment that intercepts all network communication between microservices, configured and managed using Istio's control plane functionality.
 
-## Spin up a Kubernetes cluster <a name="setup k8s"/>
-Before we can install Istio we need to create a Kubernetes cluster using GCP's cloud console. 
-1. Click the shell icon on the top right of the browser.
-2. In the new console set the project (replacing with actual project id)
-
-```
-gcloud config set project <YOUR_PROJECT_ID>
-```
-3. In the new shell enable Kubernetes Engine API
-
-```
-gcloud services enable container.googleapis.com
-```
-4. Spin up Kubernetes cluster
-
-```
-gcloud beta container clusters create istio-demo \
-    --zone=us-central1-f \
-    --machine-type=n1-standard-2 \
-    --num-nodes=4
-```
-
-After this command completes you can confirm the cluster is running:
-```
-kubectl get pods --all-namespaces
-```
-
 ## Installing Istio <a name="installing-istio"/>
 
 Now, let&#39;s install Istio. Istio is installed in its own Kubernetes istio-system namespace, and can manage microservices from all other namespaces. The installation includes Istio core components, tools, and samples.
@@ -397,7 +370,7 @@ We now have a way to route some requests to use the reviews:v2 service. Can you 
 
 You can read the [documentation page](https://istio.io/docs/tasks/traffic-management/request-routing.html) for further details on Istio&#39;s request routing.
 
-Once the v2 version has been tested to our satisfaction, we could use Istio to send traffic from all users to v2, optionally in a gradual fashion.
+Once the v2 version has been tested to our satisfaction, we can use Istio to send traffic from all users to v2, optionally in a gradual fashion.
 
 Now send 80% to v1 and 20% to v2. 
 ```
@@ -422,8 +395,8 @@ A deployment brings new code to production but it takes no production traffic. O
 A release brings live traffic to a deployment but may require signoff from “the business stakeholders”. Ideally, bringing traffic to a deployment can be done in a controlled manner to reduce risk. For example, we may want to bring internal-user traffic to the deployment first. Or we may want to bring a small fraction, say 1%, of traffic to the deployment. If any of these release rollout strategies (internal, non-paying, 1% traffic, etc) exhibit undesirable behavior (thus the need for strong observability) then we can rollback.
 
 ### Dark traffic 
-One strategy we can use to reduce risk for our releases, before we even expose to any type of user, is to shadow traffic live traffic to our deployment. With traffic shadowing, we can take a fraction of traffic and route it to our new deployment and observe how it behaves. We can do things like test for errors, exceptions, performance, and result parity. 
-With Istio, we can do this kind of traffic control by Mirroring traffic from one service to another. Let’s take a look at an example.
+One strategy we can use to reduce risk for our releases, before we even expose to any type of user, is to shadow live traffic to our deployment. With traffic shadowing, we can take a fraction of traffic and route it to our new deployment and observe how it behaves. We can do things like test for errors, exceptions, performance, and result parity. 
+With Istio, we can do this kind of traffic control by mirroring traffic from one service to another. Let’s take a look at an example.
 
 In this task, you will first force all traffic to v1 of a test service. Then, you will apply a rule to mirror a portion of traffic to v2.
 
