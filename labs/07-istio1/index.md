@@ -1099,7 +1099,7 @@ kubectl apply -f samples/bookinfo/platform/kube/rbac/rbac-config-ON.yaml
 ```
 OUTPUT:
 ```
-rbacconfig.rbac.istio.io/default created
+clusterrbacconfig.rbac.istio.io/default created
 ```
 
 Point your browser at the Bookinfo productpage (http://$GATEWAY_URL/productpage). Now you should see "RBAC: access denied". This is because Istio authorization is “deny by default”, which means that you need to explicitly define access control policy to grant access to any service.
@@ -1108,7 +1108,7 @@ Point your browser at the Bookinfo productpage (http://$GATEWAY_URL/productpage)
 
 Now, review the service role and service role binding we'll be creating
 ```
-apiVersion: "config.istio.io/v1alpha2"
+apiVersion: "rbac.istio.io/v1alpha1"
 kind: ServiceRole
 metadata:
   name: service-viewer
@@ -1118,8 +1118,23 @@ spec:
   - services: ["*"]
     methods: ["GET"]
     constraints:
-    - key: "app"
-      values: ["productpage", "details", "reviews", "ratings", "mtlstest"]
+    - key: "destination.labels[app]"
+      values: ["productpage", "details", "reviews", "ratings"]
+---
+apiVersion: "rbac.istio.io/v1alpha1"
+kind: ServiceRoleBinding
+metadata:
+  name: bind-service-viewer
+  namespace: default
+spec:
+  subjects:
+  - properties:
+      source.namespace: "istio-system"
+  - properties:
+      source.namespace: "default"
+  roleRef:
+    kind: ServiceRole
+    name: "service-viewer"
 ```
 
 
@@ -1135,8 +1150,8 @@ kubectl apply -f  samples/bookinfo/platform/kube/rbac/namespace-policy.yaml
 
 OUTPUT:
 ```
-Created config service-role/default/service-viewer at revision 196402
-Created config service-role-binding/default/bind-service-viewer at revision 196403
+servicerole.rbac.istio.io/service-viewer created
+servicerolebinding.rbac.istio.io/bind-service-viewer created
 ```
 
 The policy does the following:
@@ -1145,6 +1160,11 @@ The policy does the following:
 
 * Creates a ServiceRoleBinding that assign the service-viewer role to all services in the istio-system and default namespaces.
 
+In the Cloud Shell clone the lab repo. 
+```
+cd ~
+git clone https://github.com/jruels/fun-istio.git
+```
 
 Deploy test mtlstest Pod 
 ```
@@ -1194,6 +1214,11 @@ PERMISSION_DENIED:handler.rbac.istio-system:RBAC: permission denied.
 
 The create/POST failed due to our RBAC policy. You can learn more about Istio RBAC [here](https://istio.io/docs/concepts/security/rbac/)
 
+Exit the container
+```
+exit
+```
+
 Change back to the istio directory
 ```
 cd ~/istio-*
@@ -1214,7 +1239,7 @@ Through this task, you will learn how to enable JWT validation on specific servi
 Let's assume you want to expose the details API outside the service mesh (available on the ingress). To do this, first we look at the virtual service
 
 ```
-istioctl get virtualservices bookinfo -o yaml > bookinfo.yaml
+kubectl get virtualservices bookinfo -o yaml > bookinfo.yaml
 ```
 
 Edit the file to expose the details service by adding a `match` section for `/details`. The final file should look like:
@@ -1272,7 +1297,7 @@ OUTPUT:
 Alright, so now we can access this API. But, we have just opened the API to everyone. It is not always possible to use mTLS to protect traffic exposed on the ingress. Using a JWT policy at the ingress works great in such cases.
 
 #### Enable JWT Policy
-In this step we will enable the JWT policy on the details service. Take a look at jwttest/details-jwt.yaml
+In this step we will enable the JWT policy on the details service. Take a look at ~/fun-istio/labs/07-istio1/jwttest/details-jwt.yaml
 
 The first section is defining how to enable the JWT
 ```
@@ -1310,7 +1335,7 @@ kubectl apply -f jwttest/details-jwt.yaml
 
 OUTPUT:
 ```
-policy "details-auth-spec" created
+policy.authentication.istio.io/details-auth-spec created
 ```
 
 Now let's try and access the API from the ingress.
