@@ -985,11 +985,12 @@ kubectl create ns foo
 
 To illustrate the case when there are conflicts, add a service-specific destination rule for httpbin with incorrect TLS mode:
 ```
-cat <<EOF | istioctl create -n bar -f -
+cat <<EOF | kubectl apply -f -
 apiVersion: "networking.istio.io/v1alpha3"
 kind: "DestinationRule"
 metadata:
   name: "bad-rule"
+  namespace: "default"
 spec:
   host: "httpbin.default.svc.cluster.local"
   trafficPolicy:
@@ -1000,7 +1001,7 @@ EOF
 
 Run the same istioctl command as above, you now see the status is CONFLICT, as client is in HTTP mode while server is in mTLS.
 ```
-istioctl authn tls-check httpbin.default.svc.cluster.local
+istioctl authn tls-check ${SLEEP_POD} httpbin.default.svc.cluster.local
 ```
 
 Output: 
