@@ -10,11 +10,11 @@ This site contains the content and labs for the Fundamentals of Istio course.
 
 [Lab Setup](labs/001-setup/)
 
-Lab 1: [Docker build](labs/02-docker-build/)   
+Lab 1: [Deploy Kubernetes Pods](labs/04-pods)
 
-Lab 2: [Deploy Kubernetes Pods](labs/04-pods)
+Lab 2: [Deploy Multi-container application](labs/05-multi)
 
-Lab 3: [Deploy Multi-container application](labs/05-multi)
+Lab 3: [Kubernetes Blue/Green deployment](labs/06-blue-green)
 
 Lab 4: [Install Istio/Deploy Bookinfo app](labs/07-istio1)
 
