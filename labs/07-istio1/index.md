@@ -950,22 +950,21 @@ NOTE 2: A policy with no targets (i.e., apply to all targets in namespace) must 
 
 You can use the istioctl tool to check the effective mutual TLS settings. To identify the authentication policy and destination rules used for the httpbin.default.svc.cluster.local configuration and the mode employed, use the following command:
 ```
-istioctl authn tls-check httpbin.default.svc.cluster.local
+SLEEP_POD=$(kubectl get pod -l app=sleep -o jsonpath={.items..metadata.name})
+istioctl authn tls-check ${SLEEP_POD} httpbin.default.svc.cluster.local
 ```
 
 In the following example output you can see that:
 
-* Mutual TLS is consistently setup for httpbin.default.svc.cluster.local on port 8080.
+* Mutual TLS is consistently setup for httpbin.default.svc.cluster.local on port 8000.
 * Istio uses the mesh-wide default authentication policy.
-* Istio has the default destination rule in the default namespace.
+* Istio has the default destination rule in the istio-system  namespace.
 
 Output: 
 ```
 HOST:PORT                                  STATUS     SERVER     CLIENT     AUTHN POLICY        DESTINATION RULE
-httpbin.default.svc.cluster.local:8080     OK         mTLS       mTLS       default/            default/default
+httpbin.default.svc.cluster.local:8000     OK         mTLS       mTLS       default/            default/istio-system
 ```
-You may see a `Stderr` this is a known issue and does not cause any issues 
-
 The output shows:
 
 * STATUS: whether the TLS settings are consistent between the server, the httpbin service in this case, and the client or clients making calls to httpbin.
