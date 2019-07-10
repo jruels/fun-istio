@@ -298,7 +298,7 @@ We can use the istioctl command line tool to control routing, adding a route rul
 **NOTE: The `get` argument is deprecated and is it recommended to use `kubectl`**
 
 ```
-kubectl get kubectl get destinationrules -o yaml
+kubectl get destinationrules -o yaml
 ```
 
 No Resouces will be found. Now, create the rule(check out the source yaml files if you&#39;d like to understand how rules are specified) :
