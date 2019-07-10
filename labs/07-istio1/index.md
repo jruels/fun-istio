@@ -83,6 +83,11 @@ helm init --service-account=tiller
 helm repo update
 ```
 
+Install Istio CRDs
+```
+helm install install/kubernetes/helm/istio-init --name istio-init --namespace istio-system
+```
+
 Finally we can install Istio 
 
 ```
