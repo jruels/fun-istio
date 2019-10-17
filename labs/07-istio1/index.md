@@ -67,7 +67,8 @@ KIALI_PASSPHRASE=$(read -sp 'Kiali Passphrase: ' pval && echo -n $pval | base64)
 
 Create the `istio-system` namespace 
 ```
-kubectl create namespace istio-system
+NAMESPACE=istio-system
+kubectl create namespace $NAMESPACE
 ```
 
 Create the secret for storing the username/password set above. 
