@@ -56,6 +56,39 @@ Add the istioctl client to your PATH:
 
 Let&#39;s now install Istio&#39;s core components. We will install the Istio Auth components which enable [**mutual TLS authentication**](https://istio.io/docs/concepts/security/mutual-tls.html) between sidecars:
 
+
+We need to setup authentication credentials for Kiali (monitoring) 
+
+Set environment variables for username and password:
+```
+KIALI_USERNAME=$(read -p 'Kiali Username: ' uval && echo -n $uval | base64)
+KIALI_PASSPHRASE=$(read -sp 'Kiali Passphrase: ' pval && echo -n $pval | base64)
+```
+
+Create the `istio-system` namespace 
+```
+kubectl create namespace istio-system
+```
+
+Create the secret for storing the username/password set above. 
+```
+cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: Secret
+metadata:
+  name: kiali
+  namespace: $NAMESPACE
+  labels:
+    app: kiali
+type: Opaque
+data:
+  username: $KIALI_USERNAME
+  passphrase: $KIALI_PASSPHRASE
+EOF
+```
+
+
+
 In Istio 1.0+ the recommeded installation tool is Helm. The following steps walk through installation of the Helm client, and using Helm to install Istio. 
 
 
@@ -87,37 +120,6 @@ Install Istio CRDs
 ```
 helm install install/kubernetes/helm/istio-init --name istio-init --namespace istio-system
 ```
-
-We need to setup authentication credentails for Kiali (monitoring) 
-
-Set environment variables for username and password:
-```
-KIALI_USERNAME=$(read -p 'Kiali Username: ' uval && echo -n $uval | base64)
-KIALI_PASSPHRASE=$(read -sp 'Kiali Passphrase: ' pval && echo -n $pval | base64)
-```
-
-Create the `istio-system` namespace 
-```
-kubectl create namespace istio-system
-```
-
-Create the secret for storing the username/password set above. 
-```
-cat <<EOF | kubectl apply -f -
-apiVersion: v1
-kind: Secret
-metadata:
-  name: kiali
-  namespace: $NAMESPACE
-  labels:
-    app: kiali
-type: Opaque
-data:
-  username: $KIALI_USERNAME
-  passphrase: $KIALI_PASSPHRASE
-EOF
-```
-
 
 Finally we can install Istio 
 
