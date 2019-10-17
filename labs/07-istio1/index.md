@@ -95,9 +95,11 @@ helm install install/kubernetes/helm/istio \
     --name istio \
     --namespace istio-system \
     --set global.mtls.enabled=true \
+    --set kiali.enabled=true \
     --set grafana.enabled=true \
     --set servicegraph.enabled=true \
-    --set tracing.enabled=true
+    --set "kiali.dashboard.jaegerURL=http://jaeger-query:16686" \
+    --set "kiali.dashboard.grafanaURL=http://grafana:3000" 
 ```
 
 This command will appear to hang for a couple minutes, but it is actually installing everything in the background. Once the installation is complete you will see output showing all of the components installed. 
