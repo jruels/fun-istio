@@ -573,6 +573,11 @@ EOF
 ```
 Now all traffic goes to the httpbin v1 service.
 
+**NOTE:** GCP cloud shell is in the process of updating from Python 2 to Python 3. To avoid errors please run the following
+```
+mkdir -p ~/.cloudshell && touch ~/.cloudshell/no-python-warning
+```
+
 Send some traffic to the service:
 ```
 export SLEEP_POD=$(kubectl get pod -l app=sleep -o jsonpath={.items..metadata.name})
