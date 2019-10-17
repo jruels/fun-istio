@@ -88,6 +88,37 @@ Install Istio CRDs
 helm install install/kubernetes/helm/istio-init --name istio-init --namespace istio-system
 ```
 
+We need to setup authentication credentails for Kiali (monitoring) 
+
+Set environment variables for username and password:
+```
+KIALI_USERNAME=$(read -p 'Kiali Username: ' uval && echo -n $uval | base64)
+KIALI_PASSPHRASE=$(read -sp 'Kiali Passphrase: ' pval && echo -n $pval | base64)
+```
+
+Create the `istio-system` namespace 
+```
+kubectl create namespace istio-system
+```
+
+Create the secret for storing the username/password set above. 
+```
+cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: Secret
+metadata:
+  name: kiali
+  namespace: $NAMESPACE
+  labels:
+    app: kiali
+type: Opaque
+data:
+  username: $KIALI_USERNAME
+  passphrase: $KIALI_PASSPHRASE
+EOF
+```
+
+
 Finally we can install Istio 
 
 ```
