@@ -1478,7 +1478,7 @@ kubectl -n istio-system port-forward $(kubectl -n istio-system get pod -l app=ki
 
 ![Istio](media/kiali-service-graph.png)
 
-11. To examine the details about the Istio configuration, click on the Applications, Workloads, and Services menu icons on the left menu bar. The following screenshot shows the Bookinfo applications information:
+To examine the details about the Istio configuration, click on the Applications, Workloads, and Services menu icons on the left menu bar. The following screenshot shows the Bookinfo applications information:
 
 ![Istio](media/kiali-services.png)
 
