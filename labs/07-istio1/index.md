@@ -1426,7 +1426,7 @@ helm upgrade istio install/kubernetes/helm/istio \
     --namespace istio-system \
     --set global.mtls.enabled=true \
     --set kiali.enabled=true \
-    --set tracing.enabled=true 
+    --set tracing.enabled=true \
     --set grafana.enabled=true \
     --set servicegraph.enabled=true \
     --set "kiali.dashboard.jaegerURL=http://jaeger-query:16686" \
