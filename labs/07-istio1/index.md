@@ -1420,6 +1420,19 @@ This is expected, we did not pass a JWT token.
 
 ### Generating a service graph
 
+We need to re-run the `helm` command to install Kiali and configure monitoring and tracing.    
+```
+helm upgrade istio install/kubernetes/helm/istio \
+    --namespace istio-system \
+    --set global.mtls.enabled=true \
+    --set kiali.enabled=true \
+    --set tracing.enabled=true 
+    --set grafana.enabled=true \
+    --set servicegraph.enabled=true \
+    --set "kiali.dashboard.jaegerURL=http://jaeger-query:16686" \
+    --set "kiali.dashboard.grafanaURL=http://grafana:3000" 
+```
+
 To verify Kiali is running in your cluster, run the following  command: 
 ```
 kubectl -n istio-system get svc kiali
