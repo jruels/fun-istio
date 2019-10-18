@@ -1466,15 +1466,15 @@ kubectl -n istio-system port-forward $(kubectl -n istio-system get pod -l app=ki
 
 ![Istio](media/app-graph.png)
 
-	* The Versioned App graph type shows a node for each version of an app, but all versions of a particular app are grouped together. The following example shows the reviews group box that contains the three nodes that represents the three versions of the reviews app.
+* The Versioned App graph type shows a node for each version of an app, but all versions of a particular app are grouped together. The following example shows the reviews group box that contains the three nodes that represents the three versions of the reviews app.
 
 ![Istio](media/kiali-versionedapp.png)
 
-	* The Workload graph type shows a node for each workload in your service mesh. This graph type does not require you to use the app and version labels so if you opt to not use those labels on your components, this is the graph type you will use.
+* The Workload graph type shows a node for each workload in your service mesh. This graph type does not require you to use the app and version labels so if you opt to not use those labels on your components, this is the graph type you will use.
 
 ![Istio](media/kiali-workload.png)
 
-	* The Service graph type shows a node for each service in your mesh but excludes all apps and workloads from the graph.
+* The Service graph type shows a node for each service in your mesh but excludes all apps and workloads from the graph.
 
 ![Istio](media/kiali-service-graph.png)
 
