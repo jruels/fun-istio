@@ -23,7 +23,6 @@ In this lab, you will learn how to install and configure Istio, an open source f
    - [View metrics and tracing](#viewing-metrics-and-tracing)
    - [Monitoring for Istio](#monitoring-for-istio)
    - [Generating a Service Graph](#generate-graph)
-11. [Uninstall Istio](#uninstall-istio)
 
 ## Introduction <a name="introduction"/>
 
@@ -1417,38 +1416,117 @@ This is expected, we did not pass a JWT token.
 
 
 ## Monitoring <a name="monitoring"/>
-
 ## View metrics and tracing <a name="viewing-metrics-and-tracing"/>
+
+### Generating a service graph
+
+To verify Kiali is running in your cluster, run the following  command: 
+```
+kubectl -n istio-system get svc kiali
+```
+
+Now we need to generate some load to be displayed in Kiali  
+Set the `GATEWAY_URL`   
+```
+export GATEWAY_URL=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+```
+
+To send traffic to the mesh, you have three options   
+
+1. Visit http://$GATEWAY_URL/productpage in your web browser
+2. Use the following command multiple times:   
+```
+curl http://$GATEWAY_URL/productpage
+```
+3. Use the `watch` command to send requests continually with:   
+```
+watch -n 1 curl -o /dev/null -s -w %{http_code} $GATEWAY_URL/productpage
+```
+
+4. To open the Kiali UI, execute the following command:   
+```
+kubectl -n istio-system port-forward $(kubectl -n istio-system get pod -l app=kiali -o jsonpath='{.items[0].metadata.name}') 8080:20001
+```
+
+5. Open your browser by clicking on “Preview on port 8080”:
+![Istio](media/preview.png)
+
+6. To log into the Kiali UI, go to the Kiali login screen and enter the username and passphrase stored in the Kiali secret.   
+
+7. View the overview of your mesh in the Overview page that appears immediately after you log in. The Overview page displays all the namespaces that have services in your mesh. The following screenshot shows a similar page:
+![Istio](media/kiali-overview.png)
+
+8. To view a namespace graph, click on the `bookinfo` graph icon in the Bookinfo namespace card. The graph icon is in the lower left of the namespace card and looks like a connected group of circles. The page looks similar to:
+![Istio](media/kiali-graph.png)
+
+9. To view a summary of metrics, select any node or edge in the graph to display its metric details in the summary details panel on the right.
+
+10. To view your service mesh using different graph types, select a graph type from the Graph Type drop down menu. There are several graph types to choose from: App, Versioned App, Workload, Service.
+	* The App graph type aggregates all versions of an app into a single graph node. The following example shows a single reviews node representing the three versions of the reviews app.
+
+![Istio](media/app-graph.png)
+
+	* The Versioned App graph type shows a node for each version of an app, but all versions of a particular app are grouped together. The following example shows the reviews group box that contains the three nodes that represents the three versions of the reviews app.
+
+![Istio](media/kiali-versionedapp.png)
+
+	* The Workload graph type shows a node for each workload in your service mesh. This graph type does not require you to use the app and version labels so if you opt to not use those labels on your components, this is the graph type you will use.
+
+![Istio](media/kiali-workload.png)
+
+	* The Service graph type shows a node for each service in your mesh but excludes all apps and workloads from the graph.
+
+![Istio](media/kiali-service-graph.png)
+
+11. To examine the details about the Istio configuration, click on the Applications, Workloads, and Services menu icons on the left menu bar. The following screenshot shows the Bookinfo applications information:
+
+![Istio](media/kiali-services.png)
+
+### Using the Kiali Public API
+
+To generate JSON files representing the graphs and other metrics, health, and configuration information, you can access the Kiali Public API. For example, point your browser to $KIALI_URL/api/namespaces/graph?namespaces=default&graphType=app to get the JSON representation of your graph using the app graph type.   
+
+The Kiali Public API is built on top of Prometheus queries and depends on the standard Istio metric configuration. It also makes Kubernetes API calls to obtain additional details about your services. For the best experience using Kiali, use the metadata labels app and version on your application components. As a template, the Bookinfo sample application follows this convention.   
+
+```
+ctrl + c
+```
+Then bring the process to the foreground
+```
+fg
+```
+Then stop it again
+```
+ctrl + c
+```
 
 Istio-enabled applications can be configured to collect trace spans using, for instance, the popular [Jaeger](https://www.jaegertracing.io/docs/) distributed tracing system. Distributed tracing lets you see the flow of requests a user makes through your system, and Istio&#39;s model allows this regardless of what language/framework/platform you use to build your application.
 
-If running in an environment that uses `NodePort` run the following to expose the service. 
-```
-kubectl -n istio-system edit svc jaeger-query
-```
-
-Change `ClusterIP` to NodePort` under the `spec` section:
-```
-type: NodePort
-```
-
-Save the file and then check the services to see what the `NodePort` is. 
-```
-jaeger-query             NodePort       10.108.145.196   <none>        16686:32480/TCP
-```
-
-Configure port forwarding if on public cloud:
+Configure port forwarding:
 
 ```kubectl port-forward -n istio-system $(kubectl get pod -n istio-system -l app=jaeger -o jsonpath='{.items[0].metadata.name}') 8080:16686 &```
 
-If running on local machine open browser to `http://localhost:8080`, or if running on Google Cloud open your browser by clicking on "Preview on port 8080":
+Open your browser by clicking on "Preview on port 8080":
 ![Istio](media/preview.png)
 
-Load the Bookinfo application again (http://$GATEWAY_URL/productpage).
+Generating traces using the Bookinfo sample   
 
-Select a service  from the list (ex: istio-ingressgateway), and you will now see something similar to the following:
+1. When the Bookinfo application is up and running, access http://$GATEWAY_URL/productpage one or more times to generate trace information.   
 
-![Istio](media/metrics-1.png)
+To see trace data, you must send requests to your service. The number of requests depends on Istio’s sampling rate. You set this rate when you install Istio. The default sampling rate is 1%. You need to send at least 100 requests before the first trace is visible. To send a 100 requests to the productpage service, use the following command:   
+```
+for i in `seq 1 100`; do curl -s -o /dev/null http://$GATEWAY_URL/productpage; done
+```
+2. From the left-hand pane of the dashboard, select productpage.default from the Service drop-down list and click Find Traces:   
+
+
+![Istio](media/istio-tracing-list.png)
+
+3. Click on the most recent trace at the top to see the details corresponding to the latest request to the /productpage:   
+
+![Istio](media/istio-tracing-details.png)
+
+4. The trace is comprised of a set of spans, where each span corresponds to a Bookinfo service, invoked during the execution of a /productpage request, or internal Istio component, for example: istio-ingressgateway.   
 
 You can see how long each microservice call took, including the Istio checks.
 
@@ -1474,36 +1552,48 @@ This task shows you how to setup and use the Istio Dashboard to monitor mesh tra
 
 Grafana will be used to visualize the prometheus data.
 
-If running in an environment that uses `NodePort` run the following to expose the service. 
-```
-kubectl -n istio-system edit svc grafana
-```
-
-Change `ClusterIP` to NodePort` under the `spec` section:
-```
-type: NodePort
-```
-
-Save the file and then check the services to see what the `NodePort` is. 
-```
-grafana   NodePort   10.105.23.236   <none>        3000:30024/TCP
-```
-
-
-Configure port forwarding if on public cloud:
+Configure port forwarding:
 
 ```kubectl -n istio-system port-forward $(kubectl -n istio-system get pod -l app=grafana -o jsonpath='{.items[0].metadata.name}') 8080:3000 &```
 
-If running on local machine open browser to `http://localhost:8080`, or if running on Google Cloud open your browser by clicking on "Preview on port 8080":
+Open your browser by clicking on "Preview on port 8080":
 ![Istio](media/preview.png)
 
 Load the Bookinfo application again (http://$GATEWAY_URL/productpage).
 
-Select an Istio Dashboard in the top left from the list, and you will now see something similar to the following:
+Refresh the page a few times (or send the command a few times) to generate a small amount of traffic.
+Look at the Istio Dashboard again. It should reflect the traffic that was generated. It will look similar to:
 
- ![monitoring](media/monitoring-1.png)
+![Istio](media/dashboard-with-traffic.png)
 
-Click through the different Istio Dashboards and play around with the sources. Explore all of the available metrics/graphs that come out of the box with Istio!
+
+This gives the global view of the Mesh along with services and workloads in the mesh. You can get more details about services and workloads by navigating to their specific dashboards as explained below.   
+
+Visualize Service Dashboards.   
+
+From the Grafana dashboard’s left hand corner navigation menu, you can navigate to Istio Service Dashboard or visit http://$GRAFANA_URL/dashboard/db/istio-service-dashboard   
+
+Select the `details.default.svc.cluster.local` service at the top and refresh the productpage repeatedly about 20 times and then go look at the dashboard.
+
+![Istio](media/istio-service-dashboard.png)
+
+This gives details about metrics for the service and then client workloads (workloads that are calling this service) and service workloads (workloads that are providing this service) for that service.
+
+Visualize Workload Dashboards.
+
+From the Grafana dashboard’s left hand corner navigation menu, you can navigate to Istio Workload Dashboard or visit http://$GRAFANA_URL/dashboard/db/istio-workload-dashboard in your web browser.
+The Istio Workload Dashboard will look similar to:
+
+![Istio](media/istio-workload-dashboard.png)
+
+This gives details about metrics for each workload and then inbound workloads (workloads that are sending request to this workload) and outbound services (services to which this workload send requests) for that workload.
+
+The Istio Dashboard consists of three main sections:
+
+1. A Mesh Summary View. This section provides Global Summary view of the Mesh and shows HTTP/gRPC and TCP workloads in the Mesh.   
+2. Individual Services View. This section provides metrics about requests and responses for each individual service within the mesh (HTTP/gRPC and TCP). This also provides metrics about client and service workloads for this service.   
+3. Individual Workloads View: This section provides metrics about requests and responses for each individual workload within the mesh (HTTP/gRPC and TCP). This also provides metrics about inbound workloads and outbound services for this workload.   
+
 
  To stop the port forward, 
 ```
@@ -1518,76 +1608,48 @@ Then stop it again
 ctrl + c
 ```
 
-## Generating a Service Graph <a name="generate-graph"/>
- 
-This task shows you how to generate a graph of services within an Istio mesh. As part of this task, you will use the web-based interface for viewing service graph of the service mesh.
+### Querying Istio Metrics
 
-If running in an environment that uses `NodePort` run the following to expose the service.
+1. Verify that the prometheus service is running in your cluster.
+In Kubernetes environments, execute the following command:   
 ```
-kubectl -n istio-system edit svc servicegraph
+kubectl -n istio-system get svc prometheus
 ```
-
-Change `ClusterIP` to NodePort` under the `spec` section:
+2. Send traffic to the mesh.
+For the Bookinfo sample, visit http://$GATEWAY_URL/productpage in your web browser or issue the following command:   
 ```
-type: NodePort
-```
-
-Save the file and then check the services to see what the `NodePort` is.
-```
-servicegraph   NodePort   10.111.251.194   <none>        8088:30688/TCP
+curl http://$GATEWAY_URL/productpage
 ```
 
-
-Configure port forwarding:
-
-```kubectl -n istio-system port-forward $(kubectl -n istio-system get pod -l app=servicegraph -o jsonpath='{.items[0].metadata.name}') 8080:8088 &```
-
-If running on local machine open browser to `http://localhost:8080`, or if running on Google Cloud open your browser by clicking on "Preview on port 8080":
+3. Open the Prometheus UI.   
+In Kubernetes environments, execute the following command:   
+```
+kubectl -n istio-system port-forward $(kubectl -n istio-system get pod -l app=prometheus -o jsonpath='{.items[0].metadata.name}') 8080:9090 &
+```
+Open your browser by clicking on "Preview on port 8080":
 ![Istio](media/preview.png)
 
-NOTE: Edit the browser to add `/dotviz` manually. Like this: `https://8080-dot-2997305-dot-devshell.appspot.com/dotviz?authuser=0`
+4. Execute a Prometheus query.   
+In the “Expression” input box at the top of the web page, enter the text: istio_requests_total. Then, click the Execute button.   
 
-You will now see something similar to the following:
+The results will be similar to:   
+![Istio](media/prometheus_query_result.png)
 
-![servicegraph](media/servicegraph-1.png)
+Other queries to try:
 
-To stop the port forward, 
+* Total count of all requests to the productpage service:   
 ```
-ctrl + c
-```
-Then bring the process to the foreground
-```
-fg
-```
-Then stop it again
-```
-ctrl + c
+istio_requests_total{destination_service="productpage.default.svc.cluster.local"}
 ```
 
-
-## Uninstall Istio <a name="uninstall-istio"/>
-
-Here&#39;s how to uninstall Istio.
-
+* Total count of all requests to v3 of the reviews service:   
 ```
-kubectl delete --ignore-not-found=true -f samples/bookinfo/kube/bookinfo.yaml 
-```
-OUTPUT:
-```
-service    'details'    deleted
-deployment 'details-v1' deleted
-service    'ratings'    deleted
-deployment 'ratings-v1' deleted
-service    'reviews'    deleted
-deployment 'reviews-v1' deleted
-deployment 'reviews-v2' deleted
-deployment 'reviews-v3' deleted
-service    'productpage' deleted
-deployment 'productpage-v1' deleted
-```
- 
-```
-kubectl delete -f install/kubernetes/istio-auth.yaml
+istio_requests_total{destination_service="reviews.default.svc.cluster.local", destination_version="v3"}
 ```
 
+This query returns the current total count of all requests to the v3 of the reviews service.   
+* Rate of requests over the past 5 minutes to all instances of the productpage service:   
+```
+rate(istio_requests_total{destination_service=~"productpage.*", response_code="200"}[5m])
+```
 
