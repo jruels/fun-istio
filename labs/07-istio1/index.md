@@ -1462,9 +1462,9 @@ kubectl -n istio-system port-forward $(kubectl -n istio-system get pod -l app=ki
 9. To view a summary of metrics, select any node or edge in the graph to display its metric details in the summary details panel on the right.
 
 10. To view your service mesh using different graph types, select a graph type from the Graph Type drop down menu. There are several graph types to choose from: App, Versioned App, Workload, Service.
-	* The App graph type aggregates all versions of an app into a single graph node. The following example shows a single reviews node representing the three versions of the reviews app.
+* The App graph type aggregates all versions of an app into a single graph node. The following example shows a single reviews node representing the three versions of the reviews app.
 
-![Istio](media/app-graph.png)
+![Istio](media/app-graph.png)   
 
 * The Versioned App graph type shows a node for each version of an app, but all versions of a particular app are grouped together. The following example shows the reviews group box that contains the three nodes that represents the three versions of the reviews app.
 
