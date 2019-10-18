@@ -1512,22 +1512,20 @@ Open your browser by clicking on "Preview on port 8080":
 
 Generating traces using the Bookinfo sample   
 
-1. When the Bookinfo application is up and running, access http://$GATEWAY_URL/productpage one or more times to generate trace information.   
-
 To see trace data, you must send requests to your service. The number of requests depends on Istio’s sampling rate. You set this rate when you install Istio. The default sampling rate is 1%. You need to send at least 100 requests before the first trace is visible. To send a 100 requests to the productpage service, use the following command:   
 ```
 for i in `seq 1 100`; do curl -s -o /dev/null http://$GATEWAY_URL/productpage; done
 ```
-2. From the left-hand pane of the dashboard, select productpage.default from the Service drop-down list and click Find Traces:   
+1. From the left-hand pane of the dashboard, select productpage.default from the Service drop-down list and click Find Traces:   
 
 
 ![Istio](media/istio-tracing-list.png)
 
-3. Click on the most recent trace at the top to see the details corresponding to the latest request to the /productpage:   
+2. Click on the most recent trace at the top to see the details corresponding to the latest request to the /productpage:   
 
 ![Istio](media/istio-tracing-details.png)
 
-4. The trace is comprised of a set of spans, where each span corresponds to a Bookinfo service, invoked during the execution of a /productpage request, or internal Istio component, for example: istio-ingressgateway.   
+3. The trace is comprised of a set of spans, where each span corresponds to a Bookinfo service, invoked during the execution of a /productpage request, or internal Istio component, for example: istio-ingressgateway.   
 
 You can see how long each microservice call took, including the Istio checks.
 
