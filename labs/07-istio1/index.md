@@ -1488,6 +1488,7 @@ To generate JSON files representing the graphs and other metrics, health, and co
 
 The Kiali Public API is built on top of Prometheus queries and depends on the standard Istio metric configuration. It also makes Kubernetes API calls to obtain additional details about your services. For the best experience using Kiali, use the metadata labels app and version on your application components. As a template, the Bookinfo sample application follows this convention.   
 
+To stop the port forward, 
 ```
 ctrl + c
 ```
