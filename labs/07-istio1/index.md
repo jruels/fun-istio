@@ -327,11 +327,7 @@ Then point your browser to _**http://$GATEWAY\_URL/productpage**_ to view the Bo
 
 The BookInfo sample deploys three versions of the reviews microservice. When you accessed the application several times, you will have noticed that the output sometimes contains star ratings and sometimes it does not. This is because without an explicit default version set, Istio will route requests to all available versions of a service in a random fashion.
 
-We can use the istioctl command line tool to control routing, adding a route rule that says all traffic should go to the v1 service. First, confirm there are no route rules installed :
-
-```istioctl get destinationrules -n default```
-
-**NOTE: The `get` argument is deprecated and is it recommended to use `kubectl`**
+Check to see if there's any current route rules:
 
 ```
 kubectl get destinationrules -o yaml
