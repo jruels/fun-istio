@@ -12,4 +12,6 @@ spec:
   - jwt:
       issuer: https://amer-demo13-test.apigee.net/istio-auth/token
       jwks_uri: https://amer-demo13-test.apigee.net/istio-auth/certs
+  peers:
+  - mtls: {}
   principalBinding: USE_ORIGIN
