@@ -1022,12 +1022,6 @@ The output shows:
 
 * DESTINATION RULE: the name and namespace of the destination rule used.
 
-First we need to create the `bar` and `foo` namespaces used in the following `DestinationRule`
-```
-kubectl create ns bar
-kubectl create ns foo
-```
-
 To illustrate the case when there are conflicts, add a service-specific destination rule for httpbin with incorrect TLS mode:
 ```
 cat <<EOF | kubectl apply -f -
