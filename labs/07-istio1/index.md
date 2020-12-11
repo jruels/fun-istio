@@ -36,7 +36,7 @@ Now, let&#39;s install Istio. Istio is installed in its own Kubernetes istio-sys
 
 The [Istio release page](https://github.com/istio/istio/releases) offers download artifacts for several OSs. In our case we&#39;ll be using this command to download and extract the latest release automatically:
 
-```curl -L https://git.io/getLatestIstio | sh -```
+```curl -L https://istio.io/downloadIstio | sh -```
 
 The installation directory contains the following:
 
@@ -53,97 +53,21 @@ Add the istioctl client to your PATH:
 
 ```export PATH=$PWD/bin:$PATH```
 
-Let&#39;s now install Istio&#39;s core components. We will install the Istio Auth components which enable [**mutual TLS authentication**](https://istio.io/docs/concepts/security/mutual-tls.html) between sidecars:
+Let&#39;s now install Istio&#39;s core components. 
 
 
-We need to setup authentication credentials for Kiali (monitoring) 
-
-Set environment variables for username and password:
-```
-KIALI_USERNAME=$(read -p 'Kiali Username: ' uval && echo -n $uval | base64)
-KIALI_PASSPHRASE=$(read -sp 'Kiali Passphrase: ' pval && echo -n $pval | base64)
-```
-
-Create the `istio-system` namespace 
-```
-NAMESPACE=istio-system
-kubectl create namespace $NAMESPACE
-```
-
-Create the secret for storing the username/password set above. 
-```
-cat <<EOF | kubectl apply -f -
-apiVersion: v1
-kind: Secret
-metadata:
-  name: kiali
-  namespace: $NAMESPACE
-  labels:
-    app: kiali
-type: Opaque
-data:
-  username: $KIALI_USERNAME
-  passphrase: $KIALI_PASSPHRASE
-EOF
-```
-
-
-
-In Istio 1.0+ the recommeded installation tool is Helm. The following steps walk through installation of the Helm client, and using Helm to install Istio. 
-
-
-## Install Helm 
+Istio recently simplified the installation method by using installation profiles. The following installs the `demo` profile using `istioctl`
 
 ```
-wget https://raw.githubusercontent.com/helm/helm/master/scripts/get -O - | bash
+istioctl install --set profile=demo
 ```
-
-Now that Helm is installed we need to install the backend 
-
-Create tiller service account
-```
-kubectl create serviceaccount tiller --namespace kube-system
-```
-
-Grant tiller cluster admin role 
-```
-kubectl create clusterrolebinding tiller-admin-binding --clusterrole=cluster-admin --serviceaccount=kube-system:tiller
-```
-
-Initialize Helm to install tiller in your cluster 
-```
-helm init --service-account=tiller
-helm repo update
-```
-
-Install Istio CRDs
-```
-helm install install/kubernetes/helm/istio-init --name istio-init --namespace istio-system
-```
-
-Finally we can install Istio 
-
-```
-helm install install/kubernetes/helm/istio \
-    --name istio \
-    --namespace istio-system \
-    --set global.mtls.enabled=true \
-    --set kiali.enabled=true \
-    --set tracing.enabled=true \
-    --set grafana.enabled=true \
-    --set servicegraph.enabled=true \
-    --set "kiali.dashboard.jaegerURL=http://jaeger-query:16686" \
-    --set "kiali.dashboard.grafanaURL=http://grafana:3000" 
-```
-
-This command will appear to hang for a couple minutes, but it is actually installing everything in the background. Once the installation is complete you will see output showing all of the components installed. 
 
 
 This creates the istio-system namespace along with the required RBAC permissions, and deploys Istio-Pilot, Istio-Mixer, Istio-Ingress, Istio-Egress, and Istio-CA (Certificate Authority).
 
 ## Verifying the installation <a name="verifying-the-installation"/>
 
-First, ensure the following Kubernetes services are deployed: istio-pilot, istio-mixer, istio-ingress, and istio-egress.
+First, ensure the following Kubernetes services are deployed: istiod, istio-ingress, and istio-egress.
 
 Run the command:
 ```
@@ -153,19 +77,9 @@ OUTPUT:
 
 ```
 NAME            CLUSTER-IP      EXTERNAL-IP       PORT(S)                       AGE
-grafana                    ClusterIP      10.35.242.92    <none>           3000/TCP                                                              8d
-istio-citadel              ClusterIP      10.35.253.85    <none>           8060/TCP,9093/TCP                                                     8d
+istiod                   ClusterIP      10.35.253.85    <none>           15010/TCP,15012/TCP,443/TCP,15014/TCP                                                     8d
 istio-egressgateway        ClusterIP      10.35.255.153   <none>           80/TCP,443/TCP                                                        8d
 istio-ingressgateway       LoadBalancer   10.35.240.252   localhost        80:31380/TCP,443:31390/TCP,31400:31400/TCP                            8d
-istio-pilot                ClusterIP      10.35.244.241   <none>           15003/TCP,15005/TCP,15007/TCP,15010/TCP,15011/TCP,8080/TCP,9093/TCP   8d
-istio-policy               ClusterIP      10.35.245.176   <none>           9091/TCP,15004/TCP,9093/TCP                                           8d
-istio-sidecar-injector     ClusterIP      10.35.245.49    <none>           443/TCP                                                               8d
-istio-statsd-prom-bridge   ClusterIP      10.35.254.183   <none>           9102/TCP,9125/UDP                                                     8d
-istio-telemetry            ClusterIP      10.35.247.113   <none>           9091/TCP,15004/TCP,9093/TCP,42422/TCP                                 8d
-prometheus                 ClusterIP      10.35.246.22    <none>           9090/TCP                                                              8d
-servicegraph               ClusterIP      10.35.253.226   <none>           8088/TCP                                                              8d
-tracing                    LoadBalancer   10.35.254.155   localhost        80:30040/TCP                                                          8d
-zipkin                     ClusterIP      10.35.243.89    <none>           9411/TCP                                                              8d
 ```
 
 Then make sure that the corresponding Kubernetes pods are deployed and all containers are up and running.
@@ -177,23 +91,41 @@ kubectl get pods -n istio-system
 OUTPUT:
 ```
 NAME                                       READY     STATUS      RESTARTS   AGE
-grafana-6f6dff9986-qhdwb                   1/1       Running     0          1d
-istio-citadel-7bdc7775c7-b96t8             1/1       Running     0          1d
-istio-cleanup-old-ca-6fj2q                 0/1       Completed   0          1d
 istio-egressgateway-78dd788b6d-xsmkw       1/1       Running     1          1d
 istio-ingressgateway-7dd84b68d6-v2fkj      1/1       Running     1          1d
-istio-mixer-post-install-8tskw             0/1       Completed   0          1d
-istio-pilot-d5bbc5c59-srqt7                2/2       Running     0          1d
-istio-policy-64595c6fff-9xztj              2/2       Running     0          1d
-istio-sidecar-injector-645c89bc64-hcgq9    1/1       Running     0          1d
-istio-statsd-prom-bridge-949999c4c-lflmx   1/1       Running     0          1d
-istio-telemetry-cfb674b6c-zb2xk            2/2       Running     0          1d
-istio-tracing-754cdfd695-qq6jc             1/1       Running     0          1d
-prometheus-86cb6dd77c-fhglv                1/1       Running     0          1d
-servicegraph-5849b7d696-7dk7q              1/1       Running     0          1d
+istiod-694d48c969-s5xjn                    1/1       Running     0          1d
 ```
 
-When all the pods are running, you can proceed.
+When all the pods are running, proceed with enabling mTLS.
+
+```yaml
+kubectl apply -f - <<EOF
+apiVersion: "security.istio.io/v1beta1"
+kind: "PeerAuthentication"
+metadata:
+  name: "default"
+  namespace: "istio-system"
+spec:
+  mtls:
+    mode: STRICT
+EOF
+```
+
+Confirm `peerauthentication` resource has been created
+```
+kubectl get peerauthentication --all-namespaces
+```
+
+Output: 
+```
+NAMESPACE      NAME      AGE
+istio-system   default   51m
+```
+
+Disable warning about labeling namespace 
+```
+kubectl label namespace default istio-injection=disabled
+```
 
 ## Deploying an application <a name="deploying-an-application"/>
 
@@ -301,11 +233,6 @@ OUTPUT:
 Based on this information (Address), set the GATEWAY_URL environment variable:
 
 `export GATEWAY_URL=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}')`
-
-
-If running on `localhost` set the `GATEWAY_URL` with the following:
-
-```export GATEWAY_URL=localhost:80```
 
 
 Check that the BookInfo app is running with curl:
