@@ -48,6 +48,10 @@ metadata:
   name: webserver-blue
 spec:
   replicas: 3
+  selector:
+    matchLabels:
+      type: webserver
+      color: blue
   template:
     metadata:
       labels:
@@ -96,6 +100,10 @@ metadata:
   name: webserver-green
 spec:
   replicas: 3
+  selector:
+    matchLabels:
+      type: webserver
+      color: green
   template:
     metadata:
       labels:
