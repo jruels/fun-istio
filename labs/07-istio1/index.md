@@ -59,7 +59,8 @@ Let&#39;s now install Istio&#39;s core components.
 Istio recently simplified the installation method by using installation profiles. The following installs the `demo` profile using `istioctl`
 
 ```
-istioctl install --set profile=demo
+istioctl manifest apply --set profile=demo \
+  --set values.global.mtls.enabled=true
 ```
 
 
@@ -369,11 +370,15 @@ Start by deploying two versions of the httpbin service that have access logging 
 **httpbin-v1**:
 ```
 cat <<EOF | istioctl kube-inject -f - | kubectl create -f -
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: httpbin-v1
 spec:
+  selector:
+    matchLabels:
+      app: httpbin
+      version: v1
   replicas: 1
   template:
     metadata:
@@ -387,18 +392,22 @@ spec:
         name: httpbin
         command: ["gunicorn", "--access-logfile", "-", "-b", "0.0.0.0:8080", "httpbin:app"]
         ports:
-        - containerPort: 8080
+        - containerPort: 80
 EOF
 ```
 
 **httpbin-v2**:
 ```
 cat <<EOF | istioctl kube-inject -f - | kubectl create -f -
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: httpbin-v2
 spec:
+  selector:
+    matchLabels:
+      app: httpbin
+      version: v2
   replicas: 1
   template:
     metadata:
@@ -412,13 +421,13 @@ spec:
         name: httpbin
         command: ["gunicorn", "--access-logfile", "-", "-b", "0.0.0.0:8080", "httpbin:app"]
         ports:
-        - containerPort: 8080
+        - containerPort: 80
 EOF
 ```
 
 Now create a Kubernetes service: 
 ```
-cat <<EOF | kubectl create -f -
+kubectl create -f - <<EOF
 apiVersion: v1
 kind: Service
 metadata:
@@ -428,7 +437,8 @@ metadata:
 spec:
   ports:
   - name: http
-    port: 8080
+    port: 8000
+    targetPort: 80
   selector:
     app: httpbin
 EOF
@@ -437,11 +447,14 @@ EOF
 Start up the sleep service so you can run curl to provide load: 
 ```
 cat <<EOF | istioctl kube-inject -f - | kubectl create -f -
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: sleep
 spec:
+  selector:
+    matchLabels:
+      app: sleep
   replicas: 1
   template:
     metadata:
@@ -496,15 +509,10 @@ EOF
 ```
 Now all traffic goes to the httpbin v1 service.
 
-**NOTE:** GCP cloud shell is in the process of updating from Python 2 to Python 3. To avoid errors please run the following
-```
-mkdir -p ~/.cloudshell && touch ~/.cloudshell/no-python-warning
-```
-
 Send some traffic to the service:
 ```
 export SLEEP_POD=$(kubectl get pod -l app=sleep -o jsonpath={.items..metadata.name})
-kubectl exec -it $SLEEP_POD -c sleep -- sh -c 'curl  http://httpbin:8080/headers' | python -m json.tool
+kubectl exec -it $SLEEP_POD -c sleep -- sh -c 'curl  http://httpbin:8000/headers' | python -m json.tool
 ```
 
 Output should be similar to: 
