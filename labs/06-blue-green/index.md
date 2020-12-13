@@ -42,7 +42,7 @@ Launch three pods running `v1` of our software.  This version will have `color=b
 
 *blue.yaml*
 ```yaml
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: webserver-blue
@@ -94,7 +94,7 @@ Great!  Now let's say you wanted to release a new version of your application.
 To do that you just need to create a new deployment file. 
 *green.yaml*
 ```yaml
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: webserver-green
