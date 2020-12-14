@@ -106,7 +106,7 @@ There are 3 versions of the reviews microservice:
 
 The end-to-end architecture of the application is shown below.
 
-![bookinfo](07-istio1/media/bookinfo.png)
+![bookinfo](../07-istio1/media/bookinfo.png)
 
 ### Deploy Bookinfo
 
@@ -203,4 +203,4 @@ OUTPUT:
 
 Then point your browser to _**http://$GATEWAY\_URL/productpage**_ to view the BookInfo web page. If you refresh the page several times, you should see different versions of reviews shown in the product page, presented in a round robin style (red stars, black stars, no stars), since we haven&#39;t yet used Istio to control the version routing
 
-![Istio](07-istio1/media/use-app-1.png)
+![Istio](../07-istio1/media/use-app-1.png)
