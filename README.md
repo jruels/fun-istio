@@ -16,7 +16,7 @@ Lab 2: [Deploy Multi-container application](labs/05-multi)
 
 Lab 3: [Kubernetes Blue/Green deployment](labs/06-blue-green)
 
-Lab 4: [Install Istio/Deploy Bookinfo app](labs/07-istio1)
+Lab 4: [Install Istio/Deploy Bookinfo app](labs/install-istio)
 
 ## Day 2
 
