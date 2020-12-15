@@ -275,7 +275,7 @@ created in `v2` are the mirrored requests that are actually going to `v1`.
    kubectl delete destinationrule httpbin
 ```
 
-1.  Shutdown the [httpbin]({{< github_tree >}}/samples/httpbin) service and client:
+1.  Shutdown the `httpbin` service and client:
 
 ```
    kubectl delete deploy httpbin-v1 httpbin-v2 sleep
