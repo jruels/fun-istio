@@ -59,7 +59,7 @@ Force an invalid configuration of a service port name to see how Kiali reports a
 
 1. Change the port name of the details service from http to foo:
 ```
-kubectl patch service details -n bookinfo --type json -p '[{"op":"replace","path":"/spec/ports/0/name", "value":"foo"}]'
+kubectl patch service details -n default --type json -p '[{"op":"replace","path":"/spec/ports/0/name", "value":"foo"}]'
 ```
 2. Navigate to the Services list by clicking Services on the left hand navigation bar.
 3. Select bookinfo from the Namespace drop down menu if it is not already selected.
@@ -70,7 +70,7 @@ kubectl patch service details -n bookinfo --type json -p '[{"op":"replace","path
 ![Istio](../07-istio1/media/kiali-validate2-errormsg.png)
 7. Change the port name back to http to correct the configuration and return bookinfo back to its normal state.
 ```
-kubectl patch service details -n bookinfo --type json -p '[{"op":"replace","path":"/spec/ports/0/name", "value":"http"}]'
+kubectl patch service details -n default --type json -p '[{"op":"replace","path":"/spec/ports/0/name", "value":"http"}]'
 ```
 ![Istio](../07-istio1/media/kiali-validate3-ok.png)
 
