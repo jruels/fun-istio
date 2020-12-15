@@ -2,8 +2,7 @@
 
 This site contains the content and labs for the Fundamentals of Istio course. 
 
-## Course Content
-[Day 1](https://www.dropbox.com/s/aa3r5e8itihbwb1/00%20-%20Fundamentals%20of%20Istio%20Day%201.pdf?dl=0)   
+## [Course Content](http://bit.ly/fun-istio-slides)
 
 ## Day 1 
 
@@ -19,12 +18,11 @@ Lab 3: [Kubernetes Blue/Green deployment](labs/06-blue-green)
 
 Lab 4: [Install Istio/Deploy Bookinfo app](labs/install-istio)
 
-
 ## Day 2
 
 ### Labs 
 
-Lab 1: [Istio traffic management](labs/traffic-management)   
+Lab 1: [Istio traffic management](https://jruels.github.io/fun-istio/labs/07-istio1/#dynamically-change-request-routing)
 
 Lab 2: [Istio Handling failures](https://jruels.github.io/fun-istio/labs/07-istio1/#fault-injection)
 
