@@ -21,7 +21,7 @@ kubectl rollout status deployment/kiali -n istio-system
 ```
 
 
-       If there are errors trying to install the addons, try running the command again. There may be some timing issues which will be resolved when the command is run again. 
+    If there are errors trying to install the addons, try running the command again. There may be some timing issues which will be resolved when the command is run again. 
 
 To open the Kiali UI, execute the following command:   
 ```
