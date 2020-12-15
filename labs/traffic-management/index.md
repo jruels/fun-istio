@@ -42,7 +42,7 @@ Start by deploying two versions of the httpbin service that have access logging 
             command: ["gunicorn", "--access-logfile", "-", "-b", "0.0.0.0:80", "httpbin:app"]
             ports:
             - containerPort: 80
-    EOF
+EOF
 ``` 
 
 
@@ -73,7 +73,7 @@ Start by deploying two versions of the httpbin service that have access logging 
             command: ["gunicorn", "--access-logfile", "-", "-b", "0.0.0.0:80", "httpbin:app"]
             ports:
             - containerPort: 80
-    EOF
+EOF
 ```
 
 **httpbin Kubernetes service:**
@@ -93,7 +93,7 @@ Start by deploying two versions of the httpbin service that have access logging 
         targetPort: 80
       selector:
         app: httpbin
-    EOF
+EOF
 ```
 *   Start the `sleep` service so you can use `curl` to provide load:
 
@@ -120,7 +120,7 @@ Start by deploying two versions of the httpbin service that have access logging 
             image: tutum/curl
             command: ["/bin/sleep","infinity"]
             imagePullPolicy: IfNotPresent
-    EOF
+EOF
 ```
 
 ## Creating a default routing policy
@@ -159,7 +159,7 @@ In this step, you will change that behavior so that all traffic goes to `v1`.
       - name: v2
         labels:
           version: v2
-    EOF
+EOF
 ```
 Now all traffic goes to the `httpbin:v1` service.
 
@@ -224,7 +224,7 @@ log entries for `v1` and none for `v2`:
           host: httpbin
           subset: v2
         mirror_percent: 100
-    EOF
+EOF
 ```
 
 This route rule sends 100% of the traffic to `v1`. The last stanza specifies
