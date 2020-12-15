@@ -1,13 +1,7 @@
 ## Summary 
-In this lab you will configure Istio for traffic management, fault injection and mirroring. 
+In this lab you will configure Istio for traffic management
 
-# Table of Contents
-1. [Mirroring Traffic](#mirror-traffic)
-1. [Dynamically change request routing](#dynamically-change-request-routing)
-2. [Fault Injection](#fault-injection)
-3. [Circuit Breaker](#circuit)
-
-## Traffic mirroring (shadow traffic) <a name="mirror-traffic"/>
+## Traffic mirroring (shadow traffic)
 
 A deployment brings new code to production but it takes no production traffic. Once in the production environment, service teams are free to run smoke tests, integration tests, etc without impacting any users. A service team should feel free to deploy as frequently as it wishes.
 
@@ -282,7 +276,7 @@ created in `v2` are the mirrored requests that are actually going to `v1`.
    kubectl delete svc httpbin
 ```
 
-## Dynamically change request routing <a name="dynamically-change-request-routing"/>
+## Dynamically change request routing 
 
 The BookInfo sample deploys three versions of the reviews microservice. When you accessed the application several times, you will have noticed that the output sometimes contains star ratings and sometimes it does not. This is because without an explicit default version set, Istio will route requests to all available versions of a service in a random fashion.
 
