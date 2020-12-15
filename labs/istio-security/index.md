@@ -21,7 +21,7 @@ Peer Authentication policies are used to secure service to service communication
 * Istiod enables strong service-to-service and end-user authentication with built-in identity and credential management.
 * Istiod maintains a CA and generates certificates to allow secure mTLS communication in the data plane.
 
-https://istio.io/latest/docs/concepts/security/
+![istio-security](https://istio.io/latest/docs/concepts/security/id-prov.svg)
 
 1. Envoy is the sidecar container running along with the container running your application which proxies all the traffic in and out of the pod, sends a certificate and key request via the Envoy Secret Discovery Service (A flexible API to deliver secrets/certificates) to Istio Agent.
 2. Istio Agent on receiving the request creates a certificate and private key and then sends a Certificate Signing Request(CSR) along with the necessary credentials to Istiod
