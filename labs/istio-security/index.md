@@ -36,14 +36,14 @@ Run the following:
 
 ```
 kubectl create ns foo
-kubectl apply -f <(istioctl kube-inject -f @samples/httpbin/httpbin.yaml@) -n foo
-kubectl apply -f <(istioctl kube-inject -f @samples/sleep/sleep.yaml@) -n foo
+kubectl apply -f <(istioctl kube-inject -f samples/httpbin/httpbin.yaml) -n foo
+kubectl apply -f <(istioctl kube-inject -f samples/sleep/sleep.yaml) -n foo
 kubectl create ns bar
-kubectl apply -f <(istioctl kube-inject -f @samples/httpbin/httpbin.yaml@) -n bar
-kubectl apply -f <(istioctl kube-inject -f @samples/sleep/sleep.yaml@) -n bar
+kubectl apply -f <(istioctl kube-inject -f samples/httpbin/httpbin.yaml) -n bar
+kubectl apply -f <(istioctl kube-inject -f samples/sleep/sleep.yaml) -n bar
 kubectl create ns legacy
-kubectl apply -f @samples/httpbin/httpbin.yaml@ -n legacy
-kubectl apply -f @samples/sleep/sleep.yaml@ -n legacy
+kubectl apply -f samples/httpbin/httpbin.yaml -n legacy
+kubectl apply -f samples/sleep/sleep.yaml -n legacy
 ```
 
 You can verify setup by sending an HTTP request with `curl` from any `sleep` pod in the namespace `foo`, `bar` or `legacy` to either `httpbin.foo`,`httpbin.bar` or `httpbin.legacy`. All requests should succeed with HTTP code 200.
