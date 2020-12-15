@@ -26,7 +26,7 @@ Lab 4: [Install Istio/Deploy Bookinfo app](labs/install-istio)
 
 Lab 1: [Istio traffic management](labs/traffic-management)   
 
-Lab 2: [Istio Handling failures](https://jruels.github.io/fun-istio/labs/07-istio1/#fault-injection)
+Lab 2: [Istio Handling failures](labs/fault-injection)
 
 Lab 3: [Istio Security](https://jruels.github.io/fun-istio/labs/07-istio1/#security)
 
