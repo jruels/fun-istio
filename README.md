@@ -30,3 +30,4 @@ Lab 2: [Istio Handling failures](labs/fault-injection)
 
 Lab 3: [Istio Security](labs/istio-security)   
 
+Lab 4: [Istio Dashboard](istio-visibility)   
