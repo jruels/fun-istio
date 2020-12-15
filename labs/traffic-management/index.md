@@ -19,11 +19,12 @@ With Istio, we can do this kind of traffic control by mirroring traffic from one
 
 In this task, you will first force all traffic to v1 of a test service. Then, you will apply a rule to mirror a portion of traffic to v2.
 
-Start by deploying two versions of the httpbin service that have access logging enabled:
+Start by deploying two versions of the httpbin service that have access logging enabled:   
+
 **httpbin-v1:**
 
-   ``` 
-    $ cat <<EOF | istioctl kube-inject -f - | kubectl create -f -
+``` 
+   cat <<EOF | istioctl kube-inject -f - | kubectl create -f -
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -48,11 +49,13 @@ Start by deploying two versions of the httpbin service that have access logging 
             ports:
             - containerPort: 80
     EOF
-   ``` 
+``` 
 
-    **httpbin-v2:**
+
+**httpbin-v2:**
+
 ```
-    $ cat <<EOF | istioctl kube-inject -f - | kubectl create -f -
+   cat <<EOF | istioctl kube-inject -f - | kubectl create -f -
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -78,10 +81,11 @@ Start by deploying two versions of the httpbin service that have access logging 
             - containerPort: 80
     EOF
 ```
-    **httpbin Kubernetes service:**
+
+**httpbin Kubernetes service:**
 
 ```
-    $ kubectl create -f - <<EOF
+   kubectl create -f - <<EOF
     apiVersion: v1
     kind: Service
     metadata:
@@ -102,7 +106,7 @@ Start by deploying two versions of the httpbin service that have access logging 
     **sleep service:**
 
 ```
-    $ cat <<EOF | istioctl kube-inject -f - | kubectl create -f -
+   cat <<EOF | istioctl kube-inject -f - | kubectl create -f -
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -133,7 +137,7 @@ In this step, you will change that behavior so that all traffic goes to `v1`.
 1.  Create a default route rule to route all traffic to `v1` of the service:
 
 ```
-    $ kubectl apply -f - <<EOF
+   kubectl apply -f - <<EOF
     apiVersion: networking.istio.io/v1alpha3
     kind: VirtualService
     metadata:
@@ -163,13 +167,14 @@ In this step, you will change that behavior so that all traffic goes to `v1`.
           version: v2
     EOF
 ```
-    Now all traffic goes to the `httpbin:v1` service.
+Now all traffic goes to the `httpbin:v1` service.
 
 1. Send some traffic to the service:
 
 ```
-    $ export SLEEP_POD=$(kubectl get pod -l app=sleep -o jsonpath={.items..metadata.name})
-    $ kubectl exec "${SLEEP_POD}" -c sleep -- curl -s http://httpbin:8000/headers
+   export SLEEP_POD=$(kubectl get pod -l app=sleep -o jsonpath={.items..metadata.name})
+   kubectl exec "${SLEEP_POD}" -c sleep -- curl -s http://httpbin:8000/headers
+   
     {
       "headers": {
         "Accept": "*/*",
@@ -190,14 +195,15 @@ In this step, you will change that behavior so that all traffic goes to `v1`.
 log entries for `v1` and none for `v2`:
 
 ```
-    $ export V1_POD=$(kubectl get pod -l app=httpbin,version=v1 -o jsonpath={.items..metadata.name})
-    $ kubectl logs "$V1_POD" -c httpbin
+   export V1_POD=$(kubectl get pod -l app=httpbin,version=v1 -o jsonpath={.items..metadata.name})
+   kubectl logs "$V1_POD" -c httpbin
+   
     127.0.0.1 - - [07/Mar/2018:19:02:43 +0000] "GET /headers HTTP/1.1" 200 321 "-" "curl/7.35.0"
-    {{< /text >}}
-
-    {{< text bash >}}
-    $ export V2_POD=$(kubectl get pod -l app=httpbin,version=v2 -o jsonpath={.items..metadata.name})
-    $ kubectl logs "$V2_POD" -c httpbin
+```
+  
+```
+  export V2_POD=$(kubectl get pod -l app=httpbin,version=v2 -o jsonpath={.items..metadata.name})
+  kubectl logs "$V2_POD" -c httpbin
     <none>
 ```
 
@@ -206,7 +212,7 @@ log entries for `v1` and none for `v2`:
 1.  Change the route rule to mirror traffic to v2:
 
 ```
-    $ kubectl apply -f - <<EOF
+  kubectl apply -f - <<EOF
     apiVersion: networking.istio.io/v1alpha3
     kind: VirtualService
     metadata:
@@ -227,36 +233,36 @@ log entries for `v1` and none for `v2`:
     EOF
 ```
 
-    This route rule sends 100% of the traffic to `v1`. The last stanza specifies
-    that you want to mirror (i.e., also send) 100% of the same traffic to the
-    `httpbin:v2` service. When traffic gets mirrored,
-    the requests are sent to the mirrored service with their Host/Authority headers
-    appended with `-shadow`. For example, `cluster-1` becomes `cluster-1-shadow`.
+This route rule sends 100% of the traffic to `v1`. The last stanza specifies
+that you want to mirror (i.e., also send) 100% of the same traffic to the
+`httpbin:v2` service. When traffic gets mirrored,
+the requests are sent to the mirrored service with their Host/Authority headers
+appended with `-shadow`. For example, `cluster-1` becomes `cluster-1-shadow`.
 
-    Also, it is important to note that these requests are mirrored as "fire and
-    forget", which means that the responses are discarded.
+Also, it is important to note that these requests are mirrored as "fire and
+forget", which means that the responses are discarded.
 
-    You can use the `mirror_percent` field to mirror a fraction of the traffic,
-    instead of mirroring all requests. If this field is absent, for compatibility with
-    older versions, all traffic will be mirrored.
+You can use the `mirror_percent` field to mirror a fraction of the traffic,
+instead of mirroring all requests. If this field is absent, for compatibility with
+older versions, all traffic will be mirrored.
 
 1. Send in traffic:
 
 ```
-    $ kubectl exec "${SLEEP_POD}" -c sleep -- curl -s http://httpbin:8000/headers
+  kubectl exec "${SLEEP_POD}" -c sleep -- curl -s http://httpbin:8000/headers
 ```
   
-    Now, you should see access logging for both `v1` and `v2`. The access logs
-    created in `v2` are the mirrored requests that are actually going to `v1`.
+Now, you should see access logging for both `v1` and `v2`. The access logs
+created in `v2` are the mirrored requests that are actually going to `v1`.
 
 ```
-    $ kubectl logs "$V1_POD" -c httpbin
+   kubectl logs "$V1_POD" -c httpbin
     127.0.0.1 - - [07/Mar/2018:19:02:43 +0000] "GET /headers HTTP/1.1" 200 321 "-" "curl/7.35.0"
     127.0.0.1 - - [07/Mar/2018:19:26:44 +0000] "GET /headers HTTP/1.1" 200 321 "-" "curl/7.35.0"
-    {{< /text >}}
+```
 
-    {{< text bash >}}
-    $ kubectl logs "$V2_POD" -c httpbin
+```
+   kubectl logs "$V2_POD" -c httpbin
     127.0.0.1 - - [07/Mar/2018:19:26:44 +0000] "GET /headers HTTP/1.1" 200 361 "-" "curl/7.35.0"
 ```
 
@@ -265,13 +271,13 @@ log entries for `v1` and none for `v2`:
 1.  Remove the rules:
 
 ```
-    $ kubectl delete virtualservice httpbin
-    $ kubectl delete destinationrule httpbin
+   kubectl delete virtualservice httpbin
+   kubectl delete destinationrule httpbin
 ```
 
 1.  Shutdown the [httpbin]({{< github_tree >}}/samples/httpbin) service and client:
 
 ```
-    $ kubectl delete deploy httpbin-v1 httpbin-v2 sleep
-    $ kubectl delete svc httpbin
+   kubectl delete deploy httpbin-v1 httpbin-v2 sleep
+   kubectl delete svc httpbin
 ```
