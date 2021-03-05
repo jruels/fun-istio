@@ -5,7 +5,8 @@ In this lab you will be getting familiar with Kubernetes manifests.
 
 Create an Nginx Pod in the `default` namespace. 
 ```
-kubectl run nginx-pod-lab --image=nginx --port=80
+kubectl create deploy whoami --image containous/whoami
+kubectl create deployment nginx-pod-lab --image=nginx --port=80
 ```
 
 Confirm the Pod was created successfully.
@@ -100,7 +101,7 @@ spec:
 
 This Pod contains two containers, one is a web server running `nginx` and the other is a fetcher process to populate an HTML file for `nginx` to display. 
 
-Go ahead an deploy it. 
+Go ahead and deploy it. 
 ```
 kubectl apply -f two-containers.yml
 ```
