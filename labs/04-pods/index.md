@@ -5,7 +5,6 @@ In this lab you will be getting familiar with Kubernetes manifests.
 
 Create an Nginx Pod in the `default` namespace. 
 ```
-kubectl create deploy whoami --image containous/whoami
 kubectl create deployment nginx-pod-lab --image=nginx --port=80
 ```
 
