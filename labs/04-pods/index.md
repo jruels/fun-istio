@@ -142,4 +142,9 @@ Hello from the debian container
 
 Great, now you are a little more familiar with Kubernetes Pods and how they act. 
 
+Delete the pod
+```
+kubectl delete pods --all
+```
+
 # Lab Complete 
