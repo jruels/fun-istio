@@ -31,6 +31,16 @@ Cleanup the running nginx deployment
 kubectl delete deployment --all
 ```
 
+Create a working directory: 
+```
+mkdir -p $(date +%Y%m%d)
+```
+
+Enter working directory: 
+```
+cd $(date +%Y%m%d)/
+```
+
 
 ## Kubernetes manifest deployment 
 Review the following YAML and then create a file called `nginx-lab.yml` with the contents below: 

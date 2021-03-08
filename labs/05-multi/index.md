@@ -3,6 +3,11 @@ This lab shows you how to build, deploy and manage a simple, multi-tier web appl
 
 We will be deploying the guestbook demo application which is made up of Redis master, Redis slave, and guestbook frontend.  After successfully deploying we will update the application and then rollback to the previous version.
 
+## Enter working directory
+Enter working directory:
+```
+cd $(date +%Y%m%d)/
+```
 
 ## Clone the GitHub Repository
 Use the Git tool to clone the repository with all the lab files:
