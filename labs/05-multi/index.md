@@ -3,6 +3,17 @@ This lab shows you how to build, deploy and manage a simple, multi-tier web appl
 
 We will be deploying the guestbook demo application which is made up of Redis master, Redis slave, and guestbook frontend.  After successfully deploying we will update the application and then rollback to the previous version.
 
+
+## Clone the GitHub Repository
+Use the Git tool to clone the repository with all the lab files:
+```
+git clone https://github.com/jruels/fun-istio.git
+```
+After the cloning the repo, enter the directory:
+```
+cd fun-istio/labs/05-multi/
+```
+
 ## Start up Redis Master 
 The guestbook application uses Redis to store its data. It writes data to a Redis master instance and reads data from multiple Redis slave instances.
 
