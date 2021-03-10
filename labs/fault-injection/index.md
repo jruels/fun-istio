@@ -112,7 +112,7 @@ kubectl exec "$FORTIO_POD" -c fortio -- /usr/bin/fortio curl -quiet http://httpb
 You can see the request succeeded! Now, it’s time to break something.
 
 ### Tripping the circuit breaker
-In the DestinationRule settings, you specified maxConnections: 1 and http1MaxPendingRequests: 1. These rules indicate that if you exceed more than one connection and request concurrently, you should see some failures when the istio-proxy opens the circuit for further requests and connections.
+In the DestinationRule settings, you specified `maxConnections: 1` and `http1MaxPendingRequests: 1`. These rules indicate that if you exceed more than one connection and request concurrently, you should see some failures when the istio-proxy opens the circuit for further requests and connections.
 
 1. Call the service with two concurrent connections (-c 2) and send 20 requests (-n 20):
 ```
