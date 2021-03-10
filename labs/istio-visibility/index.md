@@ -23,7 +23,12 @@ kubectl rollout status deployment/kiali -n istio-system
 
 If there are errors trying to install the addons, try running the command again. There may be some timing issues which will be resolved when the command is run again. 
 
-To open the Kiali UI, execute the following command:   
+Run the following command to generate service requests to the Bookinfo application:
+```
+watch -n 1 curl -o /dev/null -s -w %{http_code} $GATEWAY_URL/productpage
+```
+
+To open the Kiali UI, execute the following command in a new console tab:   
 ```
 kubectl -n istio-system port-forward $(kubectl -n istio-system get pod -l app=kiali -o jsonpath='{.items[0].metadata.name}') 8080:20001
 ```
@@ -54,7 +59,7 @@ The Versioned App graph type shows a node for each version of an app, but all ve
 ## Tracing
 Istio integrates with Jaeger to provide Span duration and tracing details. 
 
-To see tracing for troubleshooting your microservices click on the **Services** tab and select **Metrics Settings**.
+To see tracing for troubleshooting your microservices click on the **Services** tab, select a service, select **Inbound Metrics** and finally select **Metrics Settings**.
 ![Istio](../07-istio1/media/traces-metrics-thumb-v1.22.0.png)
 
 Users can navigate to the traces tab to browse filtered traces for a given service in the time interval or to show details for a single trace.
