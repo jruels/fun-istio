@@ -54,7 +54,7 @@ The Versioned App graph type shows a node for each version of an app, but all ve
 ## Tracing
 Istio integrates with Jaeger to provide Span duration and tracing details. 
 
-To see tracing for troulbeshooting your microservices click on the **Services** tab and select **Metrics Settings**.
+To see tracing for troubleshooting your microservices click on the **Services** tab and select **Metrics Settings**.
 ![Istio](../07-istio1/media/traces-metrics-thumb-v1.22.0.png)
 
 Users can navigate to the traces tab to browse filtered traces for a given service in the time interval or to show details for a single trace.
