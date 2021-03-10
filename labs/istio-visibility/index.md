@@ -39,8 +39,6 @@ In the left navigation menu, select Graph and in the Namespace drop down, select
 The Kiali dashboard shows an overview of your mesh with the relationships between the services in the Bookinfo sample application. It also provides filters to visualize the traffic flow.
 ![Istio](../07-istio1/media/kiali-example2.png)
 
-To view a namespace graph, click on the `bookinfo` graph icon in the Bookinfo namespace card. The graph icon is in the lower left of the namespace card and looks like a connected group of circles. The page looks similar to:
-![Istio](../07-istio1/media/kiali-graph-new.png)
 
 To view a summary of metrics, select any node or edge in the graph to display its metric details in the summary details panel on the right.
 
