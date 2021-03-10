@@ -50,27 +50,6 @@ The App graph type aggregates all versions of an app into a single graph node. T
 The Versioned App graph type shows a node for each version of an app, but all versions of a particular app are grouped together. The following example shows the reviews group box that contains the three nodes that represents the three versions of the reviews app.
 ![Istio](../07-istio1/media/kiali-versionedapp-new.png)
 
-## Validating Istio configuration 
-Kiali can validate your Istio resources to ensure they follow proper conventions and semantics. Any problems detected in the configuration of your Istio resources can be flagged as errors or warnings depending on the severity of the incorrect configuration.
-
-Force an invalid configuration of a service port name to see how Kiali reports a validation error.
-
-1. Change the port name of the details service from http to foo:
-```
-kubectl patch service details -n default --type json -p '[{"op":"replace","path":"/spec/ports/0/name", "value":"foo"}]'
-```
-2. Navigate to the Services list by clicking Services on the left hand navigation bar.
-3. Select default from the Namespace drop down menu if it is not already selected.
-4. Notice the error icon displayed in the Configuration column of the details row.
-![Istio](../07-istio1/media/kiali-validate1-list.png)
-5. Click the details link in the Name column to navigate to the service details view.
-6. Hover over the error icon to display a tool tip describing the error.
-![Istio](../07-istio1/media/kiali-validate2-errormsg.png)
-7. Change the port name back to http to correct the configuration and return bookinfo back to its normal state.
-```
-kubectl patch service details -n default --type json -p '[{"op":"replace","path":"/spec/ports/0/name", "value":"http"}]'
-```
-![Istio](../07-istio1/media/kiali-validate3-ok.png)
 
 ## Tracing
 Istio integrates with Jaeger to provide Span duration and tracing details. 
