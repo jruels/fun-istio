@@ -60,7 +60,7 @@ Force an invalid configuration of a service port name to see how Kiali reports a
 kubectl patch service details -n default --type json -p '[{"op":"replace","path":"/spec/ports/0/name", "value":"foo"}]'
 ```
 2. Navigate to the Services list by clicking Services on the left hand navigation bar.
-3. Select bookinfo from the Namespace drop down menu if it is not already selected.
+3. Select default from the Namespace drop down menu if it is not already selected.
 4. Notice the error icon displayed in the Configuration column of the details row.
 ![Istio](../07-istio1/media/kiali-validate1-list.png)
 5. Click the details link in the Name column to navigate to the service details view.
